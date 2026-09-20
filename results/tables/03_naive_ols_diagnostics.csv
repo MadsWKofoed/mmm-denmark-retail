@@ -1,4 +1,4 @@
 test,statistic,p_value,interpretation
-Durbin-Watson (autocorrelation),1.917875035755538,0.09516720623008877,No strong evidence of autocorrelation
-"Breusch-Godfrey (autocorrelation, order 4)",30.24230496962299,4.368808431420263e-6,Residuals are autocorrelated beyond lag 1 too
-Breusch-Pagan (heteroskedasticity),33.90997169924403,0.018832041462643116,"Heteroskedastic residuals -- standard SEs are invalid, need robust/HAC SEs"
+Durbin-Watson (autocorrelation),1.9167909106396783,0.0766516883505007,No strong evidence of autocorrelation
+"Breusch-Godfrey (autocorrelation, order 4)",10.98058699451439,0.026783058294044718,Residuals are autocorrelated beyond lag 1 too
+Breusch-Pagan (heteroskedasticity),61.90308113353863,5.687316569307985e-5,"Heteroskedastic residuals -- standard SEs are invalid, need robust/HAC SEs"

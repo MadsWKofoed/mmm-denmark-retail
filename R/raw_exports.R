@@ -79,13 +79,19 @@ maybe_eur <- function(df, value_cols, dq, share_eur = 0.15) {
   df
 }
 
-#' Write a tibble to CSV with Danish decimal commas for the given numeric
-#' columns (formatted as text), semicolon-delimited like a Danish Excel export.
+#' Write a tibble to a semicolon-delimited CSV (like a Danish Excel export),
+#' with Danish decimal commas applied to comma_cols when use_comma is TRUE.
+#' use_comma = FALSE simulates an internationally-formatted platform export
+#' (e.g. Google/Meta) that uses plain decimal points despite the DKK values --
+#' this is what config$data_quality$decimal_comma_share is modelling: only
+#' some raw files use Danish number formatting, not all of them.
 write_danish_csv <- function(df, path, comma_cols = NULL, use_comma = TRUE) {
-  if (use_comma && length(comma_cols) > 0) {
+  if (length(comma_cols) > 0) {
     for (col in comma_cols) {
-      if (col %in% names(df)) df[[col]] <- danish_num(df[[col]])
+      if (col %in% names(df)) {
+        df[[col]] <- if (use_comma) danish_num(df[[col]]) else formatC(df[[col]], format = "f", digits = 2)
+      }
     }
   }
-  readr::write_delim(df, path, delim = ifelse(use_comma, ";", ","), na = "")
+  readr::write_delim(df, path, delim = ";", na = "")
 }

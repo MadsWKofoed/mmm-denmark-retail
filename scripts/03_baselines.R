@@ -45,7 +45,11 @@ wt <- wt |>
     month = lubridate::month(week_start)
   )
 
-controls_formula_rhs <- "t + fourier_sin1 + fourier_cos1 + fourier_sin2 + fourier_cos2 + promo_depth_pct + temperature_c + precipitation_mm + consumer_confidence + cpi_index"
+controls_formula_rhs <- paste(
+  "t + fourier_sin1 + fourier_cos1 + fourier_sin2 + fourier_cos2 +",
+  "promo_depth_pct + temperature_c + precipitation_mm + consumer_confidence + cpi_index + n_stores +",
+  "is_easter_week + is_ascension_week + is_whitmonday_week + is_great_prayer_week + is_christmas_week"
+)
 
 # -----------------------------------------------------------------------------
 # 1. Seasonal naive

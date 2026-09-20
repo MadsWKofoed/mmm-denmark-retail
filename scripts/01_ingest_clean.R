@@ -204,12 +204,26 @@ promo_weekly <- promo_raw |>
   summarise(promo_depth_pct = mean(dybde_pct, na.rm = TRUE), .groups = "drop")
 
 # -----------------------------------------------------------------------------
+# Store count (client-supplied operational data -> distribution control)
+# -----------------------------------------------------------------------------
+log("Cleaning store_count_weekly.csv...")
+store_raw <- read_raw_csv(here("data", "raw", "store_count_weekly.csv"))
+store_weekly <- store_raw |>
+  distinct() |>
+  mutate(week_start = lubridate::floor_date(parse_messy_dates(uge), unit = "week", week_start = 1),
+         n_stores = as.numeric(antal_butikker)) |>
+  filter(!is.na(week_start)) |>
+  group_by(week_start) |>
+  summarise(n_stores = max(n_stores), .groups = "drop")
+
+# -----------------------------------------------------------------------------
 # External real data
 # -----------------------------------------------------------------------------
 log("Loading external data...")
 weather_weekly <- read_csv(here("data", "external", "weather_weekly.csv"), show_col_types = FALSE)
 consumer_confidence <- read_csv(here("data", "external", "consumer_confidence_monthly.csv"), show_col_types = FALSE)
 cpi_monthly <- read_csv(here("data", "external", "cpi_monthly.csv"), show_col_types = FALSE)
+danish_holidays_raw <- read_csv(here("data", "external", "danish_holidays.csv"), show_col_types = FALSE)
 
 calendar <- tibble(week_start = seq(as.Date(cfg$period$start_date), as.Date(cfg$period$end_date), by = "week")) |>
   mutate(iso_year = lubridate::isoyear(week_start), iso_week = lubridate::isoweek(week_start),
@@ -223,6 +237,27 @@ external_weekly <- calendar |>
   tidyr::fill(temperature_c, precipitation_mm, consumer_confidence, cpi_index, .direction = "downup") |>
   select(week_start, temperature_c, precipitation_mm, consumer_confidence, cpi_index)
 
+# Holiday week dummies: one column per named Danish holiday that plausibly
+# moves demand, flagged for the ISO week that contains it (real, computed
+# holiday dates -- Easter/Ascension/Whit Monday move every year; Great
+# Prayer Day was abolished as a public holiday from 2024).
+holiday_weeks <- danish_holidays_raw |>
+  mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1),
+         holiday_group = case_when(
+           holiday_name %in% c("Skaertorsdag", "Langfredag", "Paaskedag", "2. Paaskedag") ~ "is_easter_week",
+           holiday_name == "Kristi Himmelfartsdag" ~ "is_ascension_week",
+           holiday_name == "2. Pinsedag" ~ "is_whitmonday_week",
+           holiday_name == "Store Bededag" ~ "is_great_prayer_week",
+           holiday_name %in% c("Juleaftensdag", "Juledag", "2. Juledag", "Nytaarsaften") ~ "is_christmas_week",
+           TRUE ~ NA_character_
+         )) |>
+  filter(!is.na(holiday_group)) |>
+  distinct(week_start, holiday_group) |>
+  mutate(flag = 1L) |>
+  pivot_wider(names_from = holiday_group, values_from = flag, values_fill = 0L)
+
+holiday_cols <- c("is_easter_week", "is_ascension_week", "is_whitmonday_week", "is_great_prayer_week", "is_christmas_week")
+
 # -----------------------------------------------------------------------------
 # Assemble the final weekly modelling table
 # -----------------------------------------------------------------------------
@@ -234,9 +269,13 @@ weekly <- calendar |>
   left_join(platform_roas_wide, by = "week_start") |>
   left_join(promo_weekly, by = "week_start") |>
   left_join(external_weekly, by = "week_start") |>
+  left_join(store_weekly, by = "week_start") |>
+  left_join(holiday_weeks, by = "week_start") |>
   mutate(
     across(starts_with("spend_"), ~ replace_na(.x, 0)),
     across(starts_with("platform_revenue_"), ~ replace_na(.x, 0)),
+    across(all_of(holiday_cols), ~ replace_na(.x, 0L)),
+    n_stores = zoo::na.locf(n_stores, na.rm = FALSE),
     promo_depth_pct = replace_na(promo_depth_pct, 0)
   ) |>
   arrange(week_start)
@@ -292,6 +331,12 @@ dict <- tibble(column = names(weekly)) |>
     column == "precipitation_mm" ~ "Total weekly precipitation, mm (real, Open-Meteo)",
     column == "consumer_confidence" ~ "Danish consumer confidence indicator (real, DST StatBank FORV1)",
     column == "cpi_index" ~ "Danish consumer price index, 2015=100 (real, DST StatBank PRIS01)",
+    column == "n_stores" ~ "Number of open stores that week (client-supplied operational data; distribution control)",
+    column == "is_easter_week" ~ "1 if the ISO week contains Maundy Thu/Good Fri/Easter Sun/Easter Mon (real, computed)",
+    column == "is_ascension_week" ~ "1 if the ISO week contains Ascension Day (real, computed)",
+    column == "is_whitmonday_week" ~ "1 if the ISO week contains Whit Monday (real, computed)",
+    column == "is_great_prayer_week" ~ "1 if the ISO week contains Great Prayer Day (real, computed; abolished as a holiday from 2024)",
+    column == "is_christmas_week" ~ "1 if the ISO week contains Christmas Eve/Day/Boxing Day/New Year's Eve (real, computed)",
     TRUE ~ "See scripts/01_ingest_clean.R"
   ))
 write_csv(dict, here("data", "processed", "data_dictionary.csv"))

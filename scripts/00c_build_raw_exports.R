@@ -55,7 +55,7 @@ build_google_ads <- function() {
   out <- inject_row_gremlins(out, dq)
   out <- out |> rename(dato = date_str, kampagne = campaign, omkostning = cost, konv_vaerdi = conv_value)
   write_danish_csv(out, here("data", "raw", "google_ads_daily.csv"),
-                    comma_cols = c("omkostning", "konv_vaerdi"))
+                    comma_cols = c("omkostning", "konv_vaerdi"), use_comma = FALSE)
 }
 
 # -----------------------------------------------------------------------------
@@ -106,7 +106,7 @@ build_programmatic <- function() {
   out <- maybe_eur(out, c("spend_dkk", "attributed_revenue"), dq, share_eur = 0.15)
   out <- inject_row_gremlins(out, dq)
   write_danish_csv(out, here("data", "raw", "programmatic_daily.csv"),
-                    comma_cols = c("spend_dkk", "attributed_revenue"))
+                    comma_cols = c("spend_dkk", "attributed_revenue"), use_comma = FALSE)
 }
 
 # -----------------------------------------------------------------------------
@@ -173,6 +173,24 @@ build_leaflets <- function() {
 }
 
 # -----------------------------------------------------------------------------
+# 6b. store_count_weekly.csv -- client-supplied operational data: number of
+#     open stores per week (a real client would supply this from their store
+#     list, not derive it from sales data). Step function, unlike the smooth
+#     ramp the true revenue effect follows -- deliberately: real distribution
+#     data is a step (stores open on a date), the sales ramp-up afterwards is
+#     a separate commercial reality the model has to pick up from the data.
+# -----------------------------------------------------------------------------
+build_store_count <- function() {
+  dist_start <- as.Date(cfg$revenue$distribution_effect$start_date)
+  out <- tibble(
+    uge = ms$week_start,
+    antal_butikker = if_else(ms$week_start < dist_start, cfg$client$n_stores_2022_2023, cfg$client$n_stores_2024_2025)
+  )
+  out$uge <- messy_dates(out$uge)
+  write_danish_csv(out, here("data", "raw", "store_count_weekly.csv"), use_comma = FALSE)
+}
+
+# -----------------------------------------------------------------------------
 # 7. client_sales_daily.csv  (store + web revenue)
 # -----------------------------------------------------------------------------
 build_client_sales <- function() {
@@ -221,6 +239,7 @@ log("Building programmatic_daily.csv..."); build_programmatic()
 log("Building tv_spots.csv..."); build_tv_spots()
 log("Building ooh_bookings.csv..."); build_ooh()
 log("Building leaflet_costs_weekly.csv..."); build_leaflets()
+log("Building store_count_weekly.csv..."); build_store_count()
 log("Building client_sales_daily.csv..."); build_client_sales()
 log("Building promo_calendar.xlsx..."); build_promo_calendar()
 

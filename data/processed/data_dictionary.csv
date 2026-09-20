@@ -28,4 +28,10 @@ temperature_c,"Mean daily temperature, Copenhagen+Aarhus avg, degrees C (real, O
 precipitation_mm,"Total weekly precipitation, mm (real, Open-Meteo)"
 consumer_confidence,"Danish consumer confidence indicator (real, DST StatBank FORV1)"
 cpi_index,"Danish consumer price index, 2015=100 (real, DST StatBank PRIS01)"
+n_stores,Number of open stores that week (client-supplied operational data; distribution control)
+is_easter_week,"1 if the ISO week contains Maundy Thu/Good Fri/Easter Sun/Easter Mon (real, computed)"
+is_great_prayer_week,"1 if the ISO week contains Great Prayer Day (real, computed; abolished as a holiday from 2024)"
+is_ascension_week,"1 if the ISO week contains Ascension Day (real, computed)"
+is_whitmonday_week,"1 if the ISO week contains Whit Monday (real, computed)"
+is_christmas_week,"1 if the ISO week contains Christmas Eve/Day/Boxing Day/New Year's Eve (real, computed)"
 revenue_was_interpolated,TRUE if this week's revenue was linearly interpolated due to missing raw rows
