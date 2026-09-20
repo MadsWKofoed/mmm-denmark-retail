@@ -1,0 +1,46 @@
+# R
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rout
+
+# renv
+renv/library/
+renv/local/
+renv/cellar/
+renv/lock/
+renv/python/
+renv/sandbox/
+renv/staging/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Editor / IDE
+.vscode/
+.Rproj.user
+
+# Quarto
+/.quarto/
+_site/
+*_files/
+reports/*.pptx.tmp
+
+# Shiny
+app/rsconnect/
+
+# Large / generated caches (keep small samples, not full caches)
+data/raw/**/*.zip
+*.cache
+
+# Environment
+.Renviron
+.env
+
+# Logs
+*.log
