@@ -27,9 +27,14 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 - Simulated data checks out: media explains 16.6% of revenue (target 15-30%), per-channel implied short-run ROAS matches configured targets (TV 1.4, leaflets 3.4, search_brand 0.5 true vs 3.06 platform-reported, social_retargeting 0.6 true vs 2.54 platform-reported — the "low true incrementality, high platform ROAS" trap is clearly present in the data).
 - Cleaned weekly table reconciles to 96-99% of true spend per channel (the ~1-4% gap is the intentional missing-day/duplicate-row data-quality noise, not a bug).
 
-## Phase 2 — ETL, validation, EDA
-- [x] ETL is done (folded into Phase 1 above, since 01_ingest_clean.R needed to exist before raw export mess could be verified)
-- [ ] EDA script (02_eda.R) not started
+## Phase 2 — ETL, validation, EDA (DONE)
+- [x] ETL (folded into Phase 1 above, since 01_ingest_clean.R needed to exist before raw export mess could be verified)
+- [x] `R/plotting.R`: shared ggplot2 theme + validated CVD-safe categorical palette (fixed channel color order), used by every figure from here on.
+- [x] `scripts/02_eda.R`: spend-pattern small multiples, spend correlation matrix, VIF on raw spend, STL seasonal decomposition, ADF/KPSS stationarity tests, platform-reported ROAS by channel.
+- Correlation matrix confirms the intended collinearity traps: TV/OOH r=0.89, TV/online_video r=0.73, search_brand/TV r=0.58 (the endogeneity link). VIF flags TV (5.56) and OOH (5.31) as problematic (>5) on raw untransformed spend -- exactly the naive-OLS failure mode Phase 3 will demonstrate.
+- ADF/KPSS both indicate revenue and total spend are stationary in levels (strong seasonality + noise dominate the mild 2.5%/yr trend) -- worth stating plainly rather than assuming non-stationarity.
+- Platform-reported ROAS: search_brand 3.06x, social_prospecting 2.88x, social_retargeting 2.54x -- TV/OOH/leaflets have no platform attribution at all (realistic: no last-click tracking for offline channels), which is itself a useful EDA finding to carry into the deck.
+- Fixed one figure bug: white correlation-value text was invisible on near-white (low |r|) cells; made label color conditional on |r|.
 
 ## Phase 2 — ETL, validation, EDA
 - [ ] Not started
