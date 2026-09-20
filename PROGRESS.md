@@ -39,8 +39,11 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 ## Phase 2 — ETL, validation, EDA
 - [ ] Not started
 
-## Phase 3 — Naive baselines + diagnostics
-- [ ] Not started
+## Phase 3 — Naive baselines + diagnostics (DONE)
+- [x] `scripts/03_baselines.R`: seasonal naive, no-media model, naive OLS on raw untransformed spend, all diagnosed (VIF, Durbin-Watson, Breusch-Godfrey, Breusch-Pagan, residual ACF, Newey-West HAC SEs).
+- Seasonal naive MAPE 13.7%. No-media model R²=0.538 (the ceiling controls alone explain). Naive OLS R²=0.608 -- barely better, and the coefficients are not trustworthy: OOH comes out **negative** (wrong-signed) despite a genuinely positive true effect, purely from TV/OOH collinearity (VIF 5.3-5.6, per Phase 2). social_retargeting's coefficient is 93.8 DKK revenue per DKK spend -- a naive ~94x ROAS -- vs. a configured true ROAS of 0.6, because retargeting spend endogenously follows site traffic (reverse causality) and OLS can't tell the difference.
+- Breusch-Godfrey strongly rejects (p<0.0001): residuals are autocorrelated beyond lag 1. Breusch-Pagan rejects (p=0.019): heteroskedastic residuals. Newey-West HAC SEs widen appropriately, but **do not fix** the social_retargeting bias -- it stays "significant" under HAC too, which is the point: HAC corrects inference (valid SEs), it does not correct endogeneity/omitted-variable bias in the point estimate itself. This distinction is worth having sharp for interview questions.
+- This whole script is the "here's what goes wrong" chapter Phase 4's adstock+saturation+regularised MMM is the answer to.
 
 ## Phase 4 — Core MMM (ridge, Bayesian), validation, recovery study
 - [ ] Not started

@@ -1,0 +1,4 @@
+model,in_sample_r2,mape_pct,notes
+Seasonal naive,NA,13.719478912525664,"Simple, robust, but blind to media entirely -- can't answer any 'what if we changed spend' question."
+No-media model,0.5382507510447806,16.345987235059596,Shows how much controls alone explain; the gap to actual revenue is what media + noise must cover.
+Naive OLS on raw spend,0.6076208351074357,14.980716939095151,1 of 9 channels wrong-signed; residuals autocorrelated (DW p=0.095) and heteroskedastic (BP p=0.019) -- coefficients are not trustworthy for budget decisions.
