@@ -119,3 +119,16 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 - Bug fixed: `attach_external_drivers()` left-joined weather data that had its own `week_start` column, colliding with the calendar's `week_start` and silently producing `week_start.x`/`.y` — broke `simulate_ground_truth()`. Fixed by selecting only the needed columns from weather before the join (same fix applied in `01_ingest_clean.R`).
 - Bug fixed (the big one): raw CSVs are semicolon-delimited with Danish decimal commas (e.g. "100257,62"). `readr::read_delim()`'s default locale has `grouping_mark = ","`, so it silently "parsed" these as thousands-grouped integers (100257,62 → 10025762), inflating every spend/revenue figure by ~100x *before* the custom Danish-number parser ever ran. Fixed by adding `read_raw_csv()` in `R/cleaning.R`, which forces every raw column to character on read so `parse_danish_number()` does the actual parsing. Caught by comparing the cleaned weekly table's totals against the known ground truth — exactly the kind of check a real analyst should run when the raw/clean totals look implausible.
 - TV, OOH and leaflets deliberately have no `platform_revenue_*` column in the modelling table — real linear TV/OOH/print bookings have no last-click platform attribution, so there is nothing to compare against MMM-estimated incrementality for those channels (this is realistic, not a gap).
+
+## Definition of done
+
+CORE (phases 0-4, 6-8 in this repo's script numbering, plus tests): **done**. EXTENDED (Bayesian
+model, geo/DiD calibration, ML benchmark, refresh backtest): **done**. STRETCH (long-term
+brand-effect model, comparison with Meta's Robyn, GitHub Actions CI): **intentionally not
+attempted** -- CORE and EXTENDED consumed the full scope reasonably achievable in this build, and
+the brief explicitly ranks STRETCH last to cut if time/usage limits bite. None of the STRETCH items
+are referenced anywhere else in the repo, so skipping them leaves nothing dangling.
+
+The repo is runnable end to end from a clean checkout (`make setup && make all`), all tests pass,
+and every deliverable (README, deck, Shiny app, Excel workbook, docs) is built from actual
+`results/` outputs, not hand-typed numbers.
