@@ -1,0 +1,31 @@
+column,description
+week_start,ISO week start date (Monday)
+iso_year,ISO year
+iso_week,ISO week number
+revenue_dkk,"Total weekly client revenue (store + web), DKK"
+store_revenue_dkk,"In-store weekly revenue, DKK"
+web_revenue_dkk,"Webshop weekly revenue, DKK"
+spend_leaflets,"Weekly media spend, leaflets, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_online_video,"Weekly media spend, online_video, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_ooh,"Weekly media spend, ooh, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_programmatic_display,"Weekly media spend, programmatic_display, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_search_brand,"Weekly media spend, search_brand, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_search_nonbrand,"Weekly media spend, search_nonbrand, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_social_prospecting,"Weekly media spend, social_prospecting, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_social_retargeting,"Weekly media spend, social_retargeting, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+spend_tv_linear,"Weekly media spend, tv_linear, DKK (converted to DKK, deduplicated, weekly-aggregated)"
+platform_revenue_leaflets,"Platform-reported (last-click) attributed revenue, leaflets, DKK"
+platform_revenue_online_video,"Platform-reported (last-click) attributed revenue, online_video, DKK"
+platform_revenue_ooh,"Platform-reported (last-click) attributed revenue, ooh, DKK"
+platform_revenue_programmatic_display,"Platform-reported (last-click) attributed revenue, programmatic_display, DKK"
+platform_revenue_search_brand,"Platform-reported (last-click) attributed revenue, search_brand, DKK"
+platform_revenue_search_nonbrand,"Platform-reported (last-click) attributed revenue, search_nonbrand, DKK"
+platform_revenue_social_prospecting,"Platform-reported (last-click) attributed revenue, social_prospecting, DKK"
+platform_revenue_social_retargeting,"Platform-reported (last-click) attributed revenue, social_retargeting, DKK"
+platform_revenue_tv_linear,"Platform-reported (last-click) attributed revenue, tv_linear, DKK"
+promo_depth_pct,"Average promo depth (%) across active promotions that week, from promo_calendar.xlsx"
+temperature_c,"Mean daily temperature, Copenhagen+Aarhus avg, degrees C (real, Open-Meteo)"
+precipitation_mm,"Total weekly precipitation, mm (real, Open-Meteo)"
+consumer_confidence,"Danish consumer confidence indicator (real, DST StatBank FORV1)"
+cpi_index,"Danish consumer price index, 2015=100 (real, DST StatBank PRIS01)"
+revenue_was_interpolated,TRUE if this week's revenue was linearly interpolated due to missing raw rows

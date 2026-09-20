@@ -1,0 +1,210 @@
+# =============================================================================
+# GROUND TRUTH for the simulated MMM dataset.
+#
+# This file is the single source of truth for the data-generating process used
+# in scripts/01_simulate_data.R. Every "true" parameter used to generate the
+# fictional client's sales and media data lives here, so that later model
+# outputs (Phase 4+) can be checked against a known answer in
+# scripts/05b_recovery_study.R. NOTHING in the modelling scripts (Phase 2
+# onwards) is allowed to read this file — that would be using the answer key
+# to fit the exam.
+#
+# Units: revenue in DKK, spend in DKK, dates are ISO weeks (Mon-start),
+# adstock decay is a geometric weekly retention rate, Hill saturation is
+# parameterised by a half-saturation point (in weekly adstocked spend, DKK)
+# and a shape parameter (steepness of the S-curve).
+# =============================================================================
+
+seed: 20220103
+
+period:
+  start_date: "2022-01-03"   # first Monday, ISO week 2022-W01
+  end_date: "2025-12-29"     # last Monday, ISO week 2025-W53
+  # NOTE: the brief specified "208 ISO weeks" for this date range, but
+  # 2022-01-03 to 2025-12-29 inclusive spans 209 Mondays (verified by
+  # direct date arithmetic: 1456 days / 7 + 1). Kept the explicit date range
+  # since it's the more concrete constraint, and corrected the week count
+  # here rather than silently shortening the period.
+  n_weeks: 209
+
+client:
+  name: "Havehjornet"          # fictional Danish home & garden retailer ("The Garden Corner")
+  n_stores_2022_2023: 54
+  n_stores_2024_2025: 62       # distribution expansion event, new stores roll in during 2024
+  has_webshop: true
+
+revenue:
+  baseline_weekly_dkk: 11500000    # average weekly baseline (non-media-driven) revenue level
+  trend_annual_growth: 0.025       # slow underlying growth, 2.5%/year
+  # seasonality: multiplicative weekly index around 1.0, built from Fourier terms in the
+  # simulator plus explicit named events below
+  seasonality:
+    garden_peak_months: [4, 5, 6]       # Apr-Jun: spring/garden peak
+    garden_peak_multiplier: 1.55
+    black_friday_week_multiplier: 1.85
+    christmas_weeks_multiplier: 1.35    # weeks 50-51
+    january_trough_multiplier: 0.72
+    fourier_terms: 4
+    fourier_amplitude: 0.12
+  holiday_effects:                      # multiplicative bump/dip vs an ordinary week
+    easter: 1.18
+    ascension_day: 1.05
+    whit_monday: 1.04
+    great_prayer_day: 1.06              # only observed as a holiday through 2023 (abolished from 2024)
+    christmas_eve_week: 0.65            # stores closed / short hours
+  noise:
+    ar1_rho: 0.35                       # AR(1) autocorrelation of residual demand shocks
+    base_sd_dkk: 260000                 # baseline noise sd
+    heteroskedastic_scale_with_level: 0.018   # extra sd proportional to seasonal level (mild heteroskedasticity)
+  distribution_effect:
+    start_date: "2024-01-08"
+    ramp_weeks: 12                      # new stores ramp up to full contribution over 12 weeks
+    revenue_uplift_at_full_ramp: 0.085  # +8.5% of baseline once fully ramped
+
+# ---------------------------------------------------------------------------
+# Non-media drivers. Each has a true effect on weekly revenue (log-additive,
+# i.e. contributes exp(beta * standardised_driver) as a multiplier, except
+# where noted). These are combined with media in the simulator.
+# ---------------------------------------------------------------------------
+non_media_drivers:
+  price_index:
+    mean: 100
+    sd: 3.5
+    true_beta: -0.9              # elasticity-like: a 1-point rise in price index reduces revenue ~0.9%
+  promo_depth_index:              # 0 (no promo) to 1 (deep promo), drives short-term spikes
+    true_beta: 0.55
+  competitor_pressure_index:
+    mean: 100
+    sd: 6
+    true_beta: -0.35
+  consumer_confidence:            # real external data (DK Economic Sentiment / FORV1), standardised
+    true_beta: 0.28
+  cpi:                            # real external data (PRIS111), standardised, y/y change
+    true_beta: -0.22
+  temperature_c:                  # real external data (Open-Meteo), interacts with garden season
+    true_beta: 0.30
+    interact_with_garden_peak: true
+    interact_multiplier: 1.8
+  precipitation_mm:
+    true_beta: -0.10
+
+# ---------------------------------------------------------------------------
+# Media channels. adstock_decay: geometric weekly retention (higher = longer
+# carryover). hill_ec: half-saturation point in weekly ADSTOCKED spend (DKK).
+# hill_shape: Hill exponent (higher = sharper S-curve / more saturating).
+# true_beta_dkk_per_unit: revenue (DKK) generated per unit of the [0,1]
+# saturated adstock index, at an average spend level -- calibrated so that
+# implied short-run ROAS falls in the stated range.
+# ---------------------------------------------------------------------------
+media_channels:
+
+  tv_linear:
+    label: "TV (linear)"
+    adstock_decay: 0.55
+    hill_ec: 900000
+    hill_shape: 1.6
+    mean_weekly_spend_dkk: 420000
+    target_short_run_roas: 1.4
+    flighting: "bursts"              # 4-6 week bursts, ~6 bursts/year
+    correlated_with: ["ooh"]         # TV and OOH flighted together deliberately (collinearity trap)
+    notes: "High reach driver; true incrementality is real but confounded with OOH timing."
+
+  online_video:
+    label: "Online video"
+    adstock_decay: 0.45
+    hill_ec: 220000
+    hill_shape: 1.5
+    mean_weekly_spend_dkk: 110000
+    target_short_run_roas: 1.9
+    flighting: "supports_tv"         # scheduled to co-occur with / just after TV bursts
+    notes: "Deliberately scheduled to support TV bursts, adding to the TV/OOH collinearity trap."
+
+  social_prospecting:
+    label: "Paid social — prospecting"
+    adstock_decay: 0.35
+    hill_ec: 160000
+    hill_shape: 1.4
+    mean_weekly_spend_dkk: 130000
+    target_short_run_roas: 2.6
+    flighting: "always_on_with_bursts"
+    notes: "Always-on with periodic bursts; also the channel switched off in the simulated geo experiment."
+
+  social_retargeting:
+    label: "Paid social — retargeting"
+    adstock_decay: 0.15
+    hill_ec: 45000
+    hill_shape: 1.9
+    mean_weekly_spend_dkk: 55000
+    target_short_run_roas: 0.6            # LOW true incrementality...
+    platform_reported_roas_inflation: 4.2  # ...but platform (last-click) reports ~4x the true ROAS
+    flighting: "follows_traffic"           # spend scales with site traffic (endogenous)
+    notes: "Classic retargeting trap: mostly reaches people who were already converting."
+
+  search_brand:
+    label: "Paid search — brand"
+    adstock_decay: 0.05
+    hill_ec: 30000
+    hill_shape: 2.2
+    mean_weekly_spend_dkk: 40000
+    target_short_run_roas: 0.5             # LOW true incrementality...
+    platform_reported_roas_inflation: 6.0  # ...but platform-reported ROAS is very high
+    flighting: "follows_brand_demand"      # spend follows brand search demand created BY tv (endogeneity)
+    endogenous_driver: "tv_linear"
+    endogenous_lag_weeks: 1
+    notes: "Spend endogenously follows brand demand that TV itself creates -- classic MMM endogeneity trap."
+
+  search_nonbrand:
+    label: "Paid search — non-brand"
+    adstock_decay: 0.10
+    hill_ec: 260000
+    hill_shape: 1.6
+    mean_weekly_spend_dkk: 150000
+    target_short_run_roas: 2.2
+    flighting: "follows_seasonal_demand"
+    notes: "Spend scales with seasonal category demand (garden peak, Christmas)."
+
+  programmatic_display:
+    label: "Programmatic display"
+    adstock_decay: 0.30
+    hill_ec: 180000
+    hill_shape: 1.5
+    mean_weekly_spend_dkk: 95000
+    target_short_run_roas: 1.1
+    flighting: "always_on"
+    notes: "Always-on, modest true effect, some brand-awareness carryover."
+
+  ooh:
+    label: "Out-of-home"
+    adstock_decay: 0.40
+    hill_ec: 300000
+    hill_shape: 1.5
+    mean_weekly_spend_dkk: 140000
+    target_short_run_roas: 1.0
+    flighting: "bursts_with_tv"
+    correlated_with: ["tv_linear"]
+    notes: "Booked in the same flight windows as TV -- deliberate collinearity trap."
+
+  leaflets:
+    label: "Leaflets / tilbudsavis"
+    adstock_decay: 0.20
+    hill_ec: 500000
+    hill_shape: 1.4
+    mean_weekly_spend_dkk: 260000
+    target_short_run_roas: 3.4
+    flighting: "weekly_with_seasonal_peaks"
+    notes: "Weekly cadence staple of Danish retail; strong, fairly well-identified short-run effect."
+
+# ---------------------------------------------------------------------------
+# Data quality gremlins to inject into the RAW exports (not the true process).
+# These make the raw data look like real platform exports and create the
+# cleaning workload the pipeline has to handle.
+# ---------------------------------------------------------------------------
+data_quality:
+  currency_mix: true                     # some platforms report EUR instead of DKK
+  eur_dkk_fixed_rate: 7.46038
+  decimal_comma_share: 0.5               # share of raw files using Danish decimal commas
+  duplicate_row_rate: 0.01
+  missing_day_rate: 0.015
+  tracking_outage_weeks: 4               # number of weeks with a platform tracking outage (spend logged, conversions missing/zero)
+  campaign_naming_messiness: true
+  mixed_date_formats: true

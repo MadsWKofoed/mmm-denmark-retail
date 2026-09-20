@@ -1,0 +1,13 @@
+raw_platform,raw_campaign_pattern,channel,tactic,funnel_stage
+google_ads_daily,*NonBrand*,search_nonbrand,paid_search,mid_funnel
+google_ads_daily,*Generic*,search_nonbrand,paid_search,mid_funnel
+google_ads_daily,*Brand*,search_brand,paid_search,lower_funnel
+meta_ads_daily,*Prospecting*,social_prospecting,paid_social,upper_funnel
+meta_ads_daily,*Awareness*,social_prospecting,paid_social,upper_funnel
+meta_ads_daily,*Retargeting*,social_retargeting,paid_social,lower_funnel
+meta_ads_daily,*Remarketing*,social_retargeting,paid_social,lower_funnel
+programmatic_daily,*Display*,programmatic_display,programmatic,mid_funnel
+programmatic_daily,*Video*,online_video,programmatic,upper_funnel
+tv_spots,*,tv_linear,linear_tv,upper_funnel
+ooh_bookings,*,ooh,out_of_home,upper_funnel
+leaflet_costs_weekly,*,leaflets,print,mid_funnel

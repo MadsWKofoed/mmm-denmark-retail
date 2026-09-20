@@ -1,0 +1,24 @@
+{
+  "fetch_date": "2026-09-20",
+  "sources": {
+    "weather": {
+      "source": "Open-Meteo archive API",
+      "is_real": true,
+      "url": "https://archive-api.open-meteo.com/v1/archive"
+    },
+    "consumer_confidence": {
+      "source": "Statistics Denmark StatBank, table FORV1",
+      "is_real": true,
+      "url": "https://api.statbank.dk/v1/data"
+    },
+    "cpi": {
+      "source": "Statistics Denmark StatBank, table PRIS01 (PRIS111 verified discontinued/inactive; PRIS01 is its active successor)",
+      "is_real": true,
+      "url": "https://api.statbank.dk/v1/data"
+    },
+    "holidays": {
+      "source": "Computed locally (Gregorian Easter algorithm + fixed DK holiday calendar)",
+      "is_real": true
+    }
+  }
+}
