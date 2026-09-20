@@ -1,0 +1,10 @@
+feature,xgb_gain,rf_importance,channel
+spend_leaflets,0.5759347527959728,3002303466790580,leaflets
+spend_search_nonbrand,0.14330146691863427,1391016096136418.2,search_nonbrand
+spend_online_video,0.01717017388091788,209182191879807.03,online_video
+spend_social_retargeting,0.010548530517547967,53875178536075.31,social_retargeting
+spend_tv_linear,0.006578032096031523,182853339717300.1,tv_linear
+spend_search_brand,0.0061126793723212365,193581786797618.7,search_brand
+spend_ooh,0.005428067981691432,120440548322349.44,ooh
+spend_social_prospecting,0.005149053162957935,74656980304290.03,social_prospecting
+spend_programmatic_display,0.0037103760470564855,51828740508607.28,programmatic_display

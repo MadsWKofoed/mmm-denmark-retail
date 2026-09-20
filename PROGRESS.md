@@ -64,11 +64,20 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 
 **brms API friction, all resolved:** (1) `purrr::flatten()` corrupts `brmsprior` objects (they're data-frame-like S3 objects) -- combine priors with `+` instead. (2) `coef=` cannot be combined with `lb=` bounds in plain linear formulas -- per-channel non-negativity needs a nonlinear (`nl=TRUE`) formula with one nlpar per channel, since nlpar-level bounds ARE supported. (3) nlpar names can't contain underscores or dots -- used `eff1..eff9` with an explicit index mapping. (4) a bare `+ control` term is silently DROPPED in `nl=TRUE` formulas -- wrapped all controls into their own `baseline` nlpar (itself a full linear sub-model) instead. (5) AR(1) errors go via `bf(..., autocor = ~ar(time=t, p=1))`, not `y | ar(...) ~ ...` bar syntax (which errored as an invalid addition term in brms 2.23).
 
-## Phase 5 — Geo experiment (DiD) + calibration
-- [ ] Not started
+## Phase 5 (validation) — DONE
+- [x] `scripts/05_validation.R`: out-of-time holdout comparison (all 5 models), rolling-origin CV for the ridge MMM, residual diagnostics.
+- Holdout MAPE: seasonal naive 5.6% (best -- strong, repeatable category seasonality makes it a genuinely hard baseline to beat on pure accuracy), ridge MMM 12.2%, naive OLS 12.7%, Bayesian MMM 13.0%, no-media 15.5%. Bayesian's 90% predictive interval covers 80.8% of holdout weeks (a bit under nominal 90%, reasonable for 26 weeks).
+- Rolling-origin CV (stricter, fold-specific lambda selection, not the search's own optimistic in-search scoring): mean R²=0.019 across 7 folds, with high fold-to-fold volatility (fold 3 R²=-1.91, others 0.3-0.6) -- documented honestly as a sign the model overfits more than its full-training-set R²=0.868 suggests, especially in early folds with limited history.
+- [x] `scripts/05b_recovery_study.R` (the only script besides 00b/00c allowed to touch ground truth): Bayesian model's 90% credible interval covers the true ROAS for 7/9 channels, and is closer to truth than the ridge point estimate for 7/9 channels. Decay/shape parameters recover much more noisily than ROAS itself (expected -- classic MMM weak-identification issue, documented as a limitation).
 
-## Phase 6 — Budget optimiser + simulators
-- [ ] Not started
+## Phase 6 (ML benchmark) — DONE
+- [x] `scripts/06_ml_benchmark.R`: xgboost + ranger, same rolling-origin CV design. xgboost holdout MAPE 6.7% (2nd best overall, beats every MMM/baseline except seasonal naive), ranger 8.7%. Feature importance (gain/impurity) is NOT a contribution/ROAS decomposition -- explicitly flagged as the central "why predictive accuracy alone isn't enough for budget decisions" point requested by the brief.
+
+## Phase 7 (geo experiment + calibration) / Phase 6 in repo numbering — IN PROGRESS
+- [ ] `scripts/07_geo_experiment.R` drafted, not yet run end-to-end.
+
+## Phase 8 (decision tools) — drafted, not yet run
+- [ ] `scripts/08_decision_tools.R`, `R/optimisation.R` drafted.
 
 ## Phase 7 — Deliverables (README, deck, app, workbook, docs)
 - [ ] Not started

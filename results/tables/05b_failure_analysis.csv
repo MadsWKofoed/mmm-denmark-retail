@@ -1,0 +1,10 @@
+channel,ridge_abs_error,bayes_abs_error,known_endogenous,likely_reason
+social_retargeting,33.00932190419429,5.389828634085857,TRUE,Endogeneity: spend follows a site-traffic proxy correlated with revenue's own seasonal level. This is the channel scripts/07's geo experiment is specifically designed to calibrate.
+search_nonbrand,20.43454117802612,2.4311803343086655,FALSE,"Spend follows seasonal category demand, correlated with revenue's own seasonality -- partially separable via controls, but not fully."
+leaflets,10.804724161085659,1.0956839505164866,FALSE,"Large, genuinely important true driver with naturally seasonal execution -- high correlation with revenue here is mostly real signal, not confounding."
+ooh,7.003398471154872,3.878045961690553,FALSE,"TV/OOH collinearity (r=0.89 in spend, both flighted together) -- credit is hard to split between them even though both have genuinely positive effects."
+social_prospecting,2.2403362319366926,0.27040946006858757,FALSE,Reasonably well-identified: flighting pattern is close to independent of revenue's own seasonal shape.
+online_video,2.155447509209083,0.41096709894185146,FALSE,Reasonably well-identified: flighting pattern is close to independent of revenue's own seasonal shape.
+programmatic_display,1.1,2.304602033002972,FALSE,Reasonably well-identified: flighting pattern is close to independent of revenue's own seasonal shape.
+search_brand,0.9545255716354857,5.370796993001206,TRUE,"Endogeneity: spend follows brand demand that TV itself creates, with a 1-week lag -- classic reverse-causality trap. Needs an experiment or instrument to fix, not just better regularisation."
+tv_linear,0.2511258627425723,0.07384218622315486,FALSE,"TV/OOH collinearity (r=0.89 in spend, both flighted together) -- credit is hard to split between them even though both have genuinely positive effects."
