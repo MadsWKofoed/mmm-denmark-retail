@@ -32,7 +32,7 @@ source(here("R", "model_design.R"))
 source(here("R", "models_bayesian.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 mcfg <- read_yaml(here("config", "model_config.yml"))
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
@@ -46,36 +46,36 @@ wt_truth <- readRDS(here("data", "processed", "_truth", "weekly_truth.rds"))
 # (well inside the series, away from the very start/end)
 # -----------------------------------------------------------------------------
 muni_df <- danish_municipalities(seed = mcfg$seed) |> assign_treatment(seed = mcfg$seed + 1)
-log("98 municipalities, %d assigned to treatment (prospecting off), %d control. Treated pop share: %.1f%%",
+log_msg("98 municipalities, %d assigned to treatment (prospecting off), %d control. Treated pop share: %.1f%%",
     sum(muni_df$treated), sum(!muni_df$treated), sum(muni_df$pop_share[muni_df$treated]) * 100)
 
 panel <- simulate_geo_panel(wt_truth, muni_df, pre_weeks = 12, post_weeks = 6,
                              window_end_week_index = 150, seed = mcfg$seed + 2)
 write_csv(panel |> select(-population), here("results", "tables", "07_geo_panel.csv"))
-log("Panel built: %d municipality-weeks (%d munis x %d weeks)", nrow(panel), n_distinct(panel$municipality), n_distinct(panel$week_index))
+log_msg("Panel built: %d municipality-weeks (%d munis x %d weeks)", nrow(panel), n_distinct(panel$municipality), n_distinct(panel$week_index))
 
 # -----------------------------------------------------------------------------
 # DiD: two-way fixed effects
 # -----------------------------------------------------------------------------
-log("Fitting two-way fixed-effects DiD...")
+log_msg("Fitting two-way fixed-effects DiD...")
 panel <- panel |> mutate(treated_post = treated & is_post)
 did_fit <- feols(revenue_pc ~ treated_post | municipality + week_index, data = panel, cluster = ~municipality)
 did_summary <- summary(did_fit)
 did_coef <- coef(did_fit)["treated_postTRUE"]
 did_se <- se(did_fit)["treated_postTRUE"]
-log("DiD estimate: %.2f DKK per-capita per week (SE %.2f, clustered by municipality)", did_coef, did_se)
+log_msg("DiD estimate: %.2f DKK per-capita per week (SE %.2f, clustered by municipality)", did_coef, did_se)
 
 total_pop <- sum(muni_df$population)
 national_weekly_lift_dkk <- did_coef * total_pop
 national_weekly_lift_se_dkk <- did_se * total_pop
-log("Implied national weekly lift from switching prospecting OFF: %.0f DKK (SE %.0f) -- so switching it",
+log_msg("Implied national weekly lift from switching prospecting OFF: %.0f DKK (SE %.0f) -- so switching it",
     national_weekly_lift_dkk, national_weekly_lift_se_dkk)
-log("  ON is estimated to ADD about %.0f DKK/week nationally while active.", -national_weekly_lift_dkk)
+log_msg("  ON is estimated to ADD about %.0f DKK/week nationally while active.", -national_weekly_lift_dkk)
 
 # -----------------------------------------------------------------------------
 # Event study: leads and lags around the treatment window
 # -----------------------------------------------------------------------------
-log("Fitting event-study specification...")
+log_msg("Fitting event-study specification...")
 event_fit <- feols(revenue_pc ~ i(week_rel, treated, ref = -1) | municipality + week_index,
                     data = panel, cluster = ~municipality)
 event_coefs <- broom::tidy(event_fit, conf.int = TRUE) |>
@@ -99,7 +99,7 @@ ggsave(here("results", "figures", "07_event_study.png"), p_event, width = 9, hei
 pre_terms <- event_coefs$term[event_coefs$week_rel < -1]
 if (length(pre_terms) > 0) {
   pt_test <- wald(event_fit, keep = pre_terms)
-  log("Parallel-trends check (joint Wald test, pre-period leads = 0): p=%.3f (%s)",
+  log_msg("Parallel-trends check (joint Wald test, pre-period leads = 0): p=%.3f (%s)",
       pt_test$p, ifelse(pt_test$p > 0.05, "PASS -- no evidence against parallel trends", "FAIL -- pre-trends detected, interpret DiD with caution"))
   write_csv(tibble(stat = pt_test$stat, p = pt_test$p), here("results", "tables", "07_parallel_trends_test.csv"))
 }
@@ -108,7 +108,7 @@ if (length(pre_terms) > 0) {
 # Randomisation inference: permute treatment assignment (same group sizes),
 # recompute DiD under each permutation, compare against actual estimate.
 # -----------------------------------------------------------------------------
-log("Running randomisation inference (500 permutations)...")
+log_msg("Running randomisation inference (500 permutations)...")
 set.seed(mcfg$seed + 3)
 n_perm <- 500
 muni_ids <- unique(panel$municipality)
@@ -126,7 +126,7 @@ perm_estimates <- map_dbl(seq_len(n_perm), function(i) {
 })
 perm_estimates <- perm_estimates[!is.na(perm_estimates)]
 ri_p_value <- mean(abs(perm_estimates) >= abs(did_coef))
-log("Randomisation-inference p-value: %.3f (%d valid permutations)", ri_p_value, length(perm_estimates))
+log_msg("Randomisation-inference p-value: %.3f (%d valid permutations)", ri_p_value, length(perm_estimates))
 
 p_ri <- ggplot(tibble(estimate = perm_estimates), aes(estimate)) +
   geom_histogram(bins = 40, fill = mmm_pal("ink_muted"), alpha = 0.7) +
@@ -140,7 +140,7 @@ ggsave(here("results", "figures", "07_randomization_inference.png"), p_ri, width
 # -----------------------------------------------------------------------------
 # Cluster bootstrap CI (resample municipalities with replacement)
 # -----------------------------------------------------------------------------
-log("Running cluster bootstrap (500 resamples)...")
+log_msg("Running cluster bootstrap (500 resamples)...")
 set.seed(mcfg$seed + 4)
 n_boot <- 500
 boot_estimates <- map_dbl(seq_len(n_boot), function(i) {
@@ -155,7 +155,7 @@ boot_estimates <- map_dbl(seq_len(n_boot), function(i) {
 })
 boot_estimates <- boot_estimates[!is.na(boot_estimates)]
 boot_ci <- quantile(boot_estimates, c(0.05, 0.95))
-log("Bootstrap 90%% CI for DiD estimate: [%.2f, %.2f] DKK per capita", boot_ci[1], boot_ci[2])
+log_msg("Bootstrap 90%% CI for DiD estimate: [%.2f, %.2f] DKK per capita", boot_ci[1], boot_ci[2])
 
 # -----------------------------------------------------------------------------
 # Power / minimum detectable effect
@@ -163,7 +163,7 @@ log("Bootstrap 90%% CI for DiD estimate: [%.2f, %.2f] DKK per capita", boot_ci[1
 sd_perm <- sd(perm_estimates)
 mde_90pct_power <- sd_perm * (qnorm(0.975) + qnorm(0.90))  # two-sided alpha=0.05, power=90%
 achieved_power <- pnorm(abs(did_coef) / sd_perm - qnorm(0.975))
-log("Design SD (from permutation null): %.2f. MDE at 90%% power: %.2f DKK/capita. Achieved power for the observed effect: %.1f%%",
+log_msg("Design SD (from permutation null): %.2f. MDE at 90%% power: %.2f DKK/capita. Achieved power for the observed effect: %.1f%%",
     sd_perm, mde_90pct_power, achieved_power * 100)
 
 power_table <- tibble(
@@ -186,7 +186,7 @@ wt <- readRDS(here("data", "processed", "weekly_modelling_table.rds"))
 avg_weekly_spend_prospecting <- mean(wt$spend_social_prospecting[post_weeks_idx])
 experiment_implied_roas <- (-national_weekly_lift_dkk) / avg_weekly_spend_prospecting
 experiment_roas_se <- national_weekly_lift_se_dkk / avg_weekly_spend_prospecting
-log("Experiment-implied ROAS for social_prospecting: %.2f (SE %.2f)", experiment_implied_roas, experiment_roas_se)
+log_msg("Experiment-implied ROAS for social_prospecting: %.2f (SE %.2f)", experiment_implied_roas, experiment_roas_se)
 write_csv(tibble(channel = "social_prospecting", experiment_implied_roas, experiment_roas_se),
           here("results", "tables", "07_experiment_implied_roas.csv"))
 
@@ -195,7 +195,7 @@ write_csv(tibble(channel = "social_prospecting", experiment_implied_roas, experi
 # social_prospecting specifically (replacing its generic shared prior),
 # and check whether recovery of the TRUE ROAS improves.
 # -----------------------------------------------------------------------------
-log("Refitting the Bayesian MMM with an experiment-calibrated prior for social_prospecting...")
+log_msg("Refitting the Bayesian MMM with an experiment-calibrated prior for social_prospecting...")
 
 bayes_model <- readRDS(here("results", "models", "04b_bayesian_model.rds"))
 channels <- ridge_model$channels
@@ -218,7 +218,7 @@ sat_sum <- sum(media_mat[, "social_prospecting"])
 spend_total <- sum(wt_train$spend_social_prospecting)
 beta_mean <- experiment_implied_roas * spend_total / (sat_sum * mean_revenue)
 beta_sd <- experiment_roas_se * spend_total / (sat_sum * mean_revenue)
-log("Experiment-informed prior for social_prospecting nlpar: normal(%.3f, %.3f) [lb=0]", beta_mean, beta_sd)
+log_msg("Experiment-informed prior for social_prospecting nlpar: normal(%.3f, %.3f) [lb=0]", beta_mean, beta_sd)
 
 fp_calibrated <- build_bayes_formula_priors(channels, mmm_control_cols(), mcfg$bayesian,
                                              prior_overrides = list(social_prospecting = list(mean = beta_mean, sd = beta_sd)))
@@ -248,10 +248,10 @@ calibration_comparison <- tibble(
   error_before = abs(before$roas_mean - true_roas_prospecting), error_after = abs(after$roas_mean - true_roas_prospecting)
 )
 write_csv(calibration_comparison, here("results", "tables", "07_calibration_comparison.csv"))
-log("social_prospecting ROAS recovery: true=%.2f, before calibration=%.2f [%.2f, %.2f], after=%.2f [%.2f, %.2f]",
+log_msg("social_prospecting ROAS recovery: true=%.2f, before calibration=%.2f [%.2f, %.2f], after=%.2f [%.2f, %.2f]",
     true_roas_prospecting, before$roas_mean, before$roas_lower, before$roas_upper,
     after$roas_mean, after$roas_lower, after$roas_upper)
-log("Calibration %s the estimate (error %.2f -> %.2f)",
+log_msg("Calibration %s the estimate (error %.2f -> %.2f)",
     ifelse(calibration_comparison$error_after < calibration_comparison$error_before, "IMPROVED", "did NOT improve"),
     calibration_comparison$error_before, calibration_comparison$error_after)
 
@@ -262,8 +262,12 @@ p_calibration <- calibration_comparison |>
   select(true_roas, roas_before_calibration, roas_before_lower, roas_before_upper,
          roas_after_calibration, roas_after_lower, roas_after_upper) |>
   pivot_longer(-true_roas, names_to = "key", values_to = "value") |>
-  mutate(stage = ifelse(str_detect(key, "before"), "Before calibration", "After calibration"),
-         stat = str_extract(key, "roas|lower|upper") |> str_replace("roas", "estimate")) |>
+  mutate(stage = ifelse(str_detect(key, "_before_"), "Before calibration", "After calibration"),
+         stat = case_when(
+           str_detect(key, "_lower$") ~ "lower",
+           str_detect(key, "_upper$") ~ "upper",
+           TRUE ~ "estimate"
+         )) |>
   select(-key) |>
   pivot_wider(names_from = stat, values_from = value)
 
@@ -276,4 +280,4 @@ p_calib_plot <- ggplot(p_calibration, aes(stage, estimate)) +
   mmm_theme()
 ggsave(here("results", "figures", "07_calibration_comparison.png"), p_calib_plot, width = 7, height = 5.5, dpi = 130)
 
-log("Done. Wrote experiment tables/figures with prefix 07_, calibrated model to results/models/07_bayesian_calibrated.rds")
+log_msg("Done. Wrote experiment tables/figures with prefix 07_, calibrated model to results/models/07_bayesian_calibrated.rds")

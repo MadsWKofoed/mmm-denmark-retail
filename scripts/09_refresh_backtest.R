@@ -27,7 +27,7 @@ source(here("R", "model_design.R"))
 source(here("R", "models_transform_search.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 quick <- Sys.getenv("MMM_QUICK", "0") == "1"
 mcfg <- read_yaml(here("config", "model_config.yml"))
@@ -47,7 +47,7 @@ last_refresh_end <- n_total - step_weeks  # last refresh must leave room to fore
 refresh_ends <- round(seq(last_refresh_end - (n_refreshes - 1) * step_weeks, last_refresh_end, by = step_weeks))
 refresh_ends <- refresh_ends[refresh_ends > 100]  # need enough history to fit at all
 
-log("Running %d monthly expanding-window refreshes (forecasting %d weeks ahead each time)...", length(refresh_ends), step_weeks)
+log_msg("Running %d monthly expanding-window refreshes (forecasting %d weeks ahead each time)...", length(refresh_ends), step_weeks)
 
 n_draws_refresh <- if (quick) 15 else 60  # smaller than 04a's full search -- this runs many times
 cv_cfg <- mcfg$cv$quick  # keep each refresh's own internal CV light; this script's expense is in the NUMBER of refreshes, not each one's depth
@@ -122,10 +122,10 @@ p_forecast_err <- ggplot(refresh_results, aes(refresh_date, next_period_mape_pct
   mmm_theme()
 ggsave(here("results", "figures", "09_forecast_error_over_time.png"), p_forecast_err, width = 9, height = 5, dpi = 130)
 
-log("Refresh backtest summary: mean next-period MAPE=%.1f%%, ROAS coefficient of variation by channel:",
+log_msg("Refresh backtest summary: mean next-period MAPE=%.1f%%, ROAS coefficient of variation by channel:",
     mean(refresh_results$next_period_mape_pct, na.rm = TRUE))
 cv_by_channel <- roas_long |> group_by(channel) |> summarise(mean_roas = mean(roas), cv = sd(roas) / mean(roas), .groups = "drop") |> arrange(desc(cv))
 write_csv(cv_by_channel, here("results", "tables", "09_roas_stability_summary.csv"))
 print(cv_by_channel)
 
-log("Done. Wrote tables/figures with prefix 09_")
+log_msg("Done. Wrote tables/figures with prefix 09_")

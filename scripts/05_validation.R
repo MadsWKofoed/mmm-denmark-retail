@@ -24,7 +24,7 @@ source(here("R", "transformations.R"))
 source(here("R", "model_design.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 mcfg <- read_yaml(here("config", "model_config.yml"))
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
@@ -43,7 +43,7 @@ wt_test <- wt[test_idx, ]
 channels <- ridge_model$channels
 final_params <- ridge_model$params
 
-log("Out-of-time holdout: %d weeks, %s to %s (untouched by all tuning above)",
+log_msg("Out-of-time holdout: %d weeks, %s to %s (untouched by all tuning above)",
     holdout_n, min(wt_test$week_start), max(wt_test$week_start))
 
 # Build media matrix on the FULL series then split, so adstock carryover
@@ -66,7 +66,7 @@ accuracy_metrics <- function(actual, predicted, model_name) {
 # looks back 52 weeks; no-media/naive OLS refit on training only, matching
 # scripts/03_baselines.R's spec, then predict on holdout)
 # -----------------------------------------------------------------------------
-log("Evaluating baselines on the holdout...")
+log_msg("Evaluating baselines on the holdout...")
 
 seasonal_naive_pred <- wt$revenue_dkk[test_idx - 52]
 m_seasonal_naive <- accuracy_metrics(wt_test$revenue_dkk, seasonal_naive_pred, "Seasonal naive")
@@ -86,7 +86,7 @@ m_ols <- accuracy_metrics(wt_test$revenue_dkk, predict(ols_fit, newdata = wt_tes
 # -----------------------------------------------------------------------------
 # Ridge/elastic-net MMM (04a)
 # -----------------------------------------------------------------------------
-log("Evaluating ridge MMM on the holdout...")
+log_msg("Evaluating ridge MMM on the holdout...")
 control_mat_test <- as.matrix(wt_test[, mmm_control_cols()])
 X_test <- cbind(media_split$test, control_mat_test)
 ridge_pred <- as.numeric(predict(ridge_model$fit, newx = X_test))
@@ -95,7 +95,7 @@ m_ridge <- accuracy_metrics(wt_test$revenue_dkk, ridge_pred, "Ridge/elastic-net 
 # -----------------------------------------------------------------------------
 # Bayesian MMM (04b)
 # -----------------------------------------------------------------------------
-log("Evaluating Bayesian MMM on the holdout...")
+log_msg("Evaluating Bayesian MMM on the holdout...")
 newdata_test <- as_tibble(media_split$test) |> bind_cols(as_tibble(control_mat_test)) |>
   mutate(t = wt_test$t, y_scaled = wt_test$revenue_dkk / bayes_model$mean_revenue)
 bayes_pred_draws <- posterior_predict(bayes_model$fit, newdata = newdata_test, allow_new_levels = TRUE)
@@ -106,14 +106,14 @@ bayes_pred_upper <- apply(bayes_pred_draws, 2, quantile, 0.95) * bayes_model$mea
 m_bayes <- accuracy_metrics(wt_test$revenue_dkk, bayes_pred, "Bayesian MMM")
 
 coverage_90 <- mean(wt_test$revenue_dkk >= bayes_pred_lower & wt_test$revenue_dkk <= bayes_pred_upper)
-log("Bayesian MMM 90%% predictive interval coverage on holdout: %.1f%% (target ~90%%)", coverage_90 * 100)
+log_msg("Bayesian MMM 90%% predictive interval coverage on holdout: %.1f%% (target ~90%%)", coverage_90 * 100)
 
 # -----------------------------------------------------------------------------
 # Comparison table
 # -----------------------------------------------------------------------------
 comparison <- bind_rows(m_seasonal_naive, m_no_media, m_ols, m_ridge, m_bayes) |> arrange(mape_pct)
 write_csv(comparison, here("results", "tables", "05_holdout_comparison.csv"))
-log("Out-of-time holdout comparison (%d weeks, untouched by tuning):", holdout_n)
+log_msg("Out-of-time holdout comparison (%d weeks, untouched by tuning):", holdout_n)
 print(comparison)
 
 # -----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ print(comparison)
 # transform (for the ridge model) -- reports the CV distribution, not just
 # the single random-search winner's score.
 # -----------------------------------------------------------------------------
-log("Rolling-origin CV summary (ridge MMM, final chosen transform)...")
+log_msg("Rolling-origin CV summary (ridge MMM, final chosen transform)...")
 source(here("R", "models_transform_search.R"))
 cv_cfg <- mcfg$cv$full
 folds <- rolling_origin_folds(nrow(wt_train), cv_cfg$initial_window_weeks, cv_cfg$step_weeks, cv_cfg$horizon_weeks)
@@ -138,7 +138,7 @@ cv_fold_metrics <- map_dfr(seq_along(folds), function(i) {
   m
 })
 write_csv(cv_fold_metrics, here("results", "tables", "05_rolling_cv_metrics.csv"))
-log("Rolling-origin CV (ridge MMM): mean MAPE=%.1f%%, mean RMSE=%.0f, mean R2=%.3f across %d folds",
+log_msg("Rolling-origin CV (ridge MMM): mean MAPE=%.1f%%, mean RMSE=%.0f, mean R2=%.3f across %d folds",
     mean(cv_fold_metrics$mape_pct), mean(cv_fold_metrics$rmse), mean(cv_fold_metrics$r2), nrow(cv_fold_metrics))
 
 # -----------------------------------------------------------------------------
@@ -173,4 +173,4 @@ p_holdout <- resid_df |>
   mmm_theme()
 ggsave(here("results", "figures", "05_holdout_actual_vs_predicted.png"), p_holdout, width = 10, height = 5, dpi = 130)
 
-log("Done. Wrote tables/figures with prefix 05_")
+log_msg("Done. Wrote tables/figures with prefix 05_")

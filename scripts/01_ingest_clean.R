@@ -23,12 +23,12 @@ cfg <- read_yaml(here("config", "ground_truth.yml"))
 eur_rate <- cfg$data_quality$eur_dkk_fixed_rate
 taxonomy <- read_csv(here("data", "raw", "taxonomy_map.csv"), show_col_types = FALSE)
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 # -----------------------------------------------------------------------------
 # Google Ads (search_brand, search_nonbrand)
 # -----------------------------------------------------------------------------
-log("Cleaning google_ads_daily.csv...")
+log_msg("Cleaning google_ads_daily.csv...")
 google_raw <- read_raw_csv(here("data", "raw", "google_ads_daily.csv"))
 google_clean <- google_raw |>
   distinct() |>
@@ -42,7 +42,7 @@ google_clean <- google_raw |>
 google_clean <- google_clean |> bind_cols(match_taxonomy(google_clean$kampagne, "google_ads_daily", taxonomy))
 
 n_unmatched_google <- sum(is.na(google_clean$channel))
-if (n_unmatched_google > 0) log("  WARNING: %d google_ads rows unmatched by taxonomy", n_unmatched_google)
+if (n_unmatched_google > 0) log_msg("  WARNING: %d google_ads rows unmatched by taxonomy", n_unmatched_google)
 
 google_weekly <- google_clean |>
   filter(!is.na(channel)) |>
@@ -54,7 +54,7 @@ google_weekly <- google_clean |>
 # -----------------------------------------------------------------------------
 # Meta Ads (social_prospecting, social_retargeting)
 # -----------------------------------------------------------------------------
-log("Cleaning meta_ads_daily.csv...")
+log_msg("Cleaning meta_ads_daily.csv...")
 meta_raw <- read_raw_csv(here("data", "raw", "meta_ads_daily.csv")) |>
   janitor::clean_names()
 meta_clean <- meta_raw |>
@@ -68,7 +68,7 @@ meta_clean <- meta_raw |>
 meta_clean <- meta_clean |> bind_cols(match_taxonomy(meta_clean$campaign_name, "meta_ads_daily", taxonomy))
 
 n_unmatched_meta <- sum(is.na(meta_clean$channel))
-if (n_unmatched_meta > 0) log("  WARNING: %d meta_ads rows unmatched by taxonomy", n_unmatched_meta)
+if (n_unmatched_meta > 0) log_msg("  WARNING: %d meta_ads rows unmatched by taxonomy", n_unmatched_meta)
 
 meta_weekly <- meta_clean |>
   filter(!is.na(channel)) |>
@@ -80,7 +80,7 @@ meta_weekly <- meta_clean |>
 # -----------------------------------------------------------------------------
 # Programmatic (programmatic_display, online_video)
 # -----------------------------------------------------------------------------
-log("Cleaning programmatic_daily.csv...")
+log_msg("Cleaning programmatic_daily.csv...")
 prog_raw <- read_raw_csv(here("data", "raw", "programmatic_daily.csv"))
 prog_clean <- prog_raw |>
   distinct() |>
@@ -102,7 +102,7 @@ prog_weekly <- prog_clean |>
 # -----------------------------------------------------------------------------
 # TV spots
 # -----------------------------------------------------------------------------
-log("Cleaning tv_spots.csv...")
+log_msg("Cleaning tv_spots.csv...")
 tv_raw <- read_raw_csv(here("data", "raw", "tv_spots.csv"))
 tv_weekly <- tv_raw |>
   distinct() |>
@@ -119,7 +119,7 @@ tv_weekly <- tv_raw |>
 # -----------------------------------------------------------------------------
 # OOH bookings
 # -----------------------------------------------------------------------------
-log("Cleaning ooh_bookings.csv...")
+log_msg("Cleaning ooh_bookings.csv...")
 ooh_raw <- read_raw_csv(here("data", "raw", "ooh_bookings.csv"))
 ooh_weekly <- ooh_raw |>
   distinct() |>
@@ -136,7 +136,7 @@ ooh_weekly <- ooh_raw |>
 # -----------------------------------------------------------------------------
 # Leaflets
 # -----------------------------------------------------------------------------
-log("Cleaning leaflet_costs_weekly.csv...")
+log_msg("Cleaning leaflet_costs_weekly.csv...")
 leaflet_raw <- read_raw_csv(here("data", "raw", "leaflet_costs_weekly.csv"))
 leaflet_weekly <- leaflet_raw |>
   distinct() |>
@@ -177,7 +177,7 @@ platform_roas_wide <- media_long |>
 # -----------------------------------------------------------------------------
 # Client sales (revenue)
 # -----------------------------------------------------------------------------
-log("Cleaning client_sales_daily.csv...")
+log_msg("Cleaning client_sales_daily.csv...")
 sales_raw <- read_raw_csv(here("data", "raw", "client_sales_daily.csv"))
 sales_weekly <- sales_raw |>
   distinct() |>
@@ -196,7 +196,7 @@ sales_weekly <- sales_raw |>
 # -----------------------------------------------------------------------------
 # Promo calendar -> weekly promo depth (share of week under promotion, avg depth)
 # -----------------------------------------------------------------------------
-log("Cleaning promo_calendar.xlsx...")
+log_msg("Cleaning promo_calendar.xlsx...")
 promo_raw <- read_excel(here("data", "raw", "promo_calendar.xlsx"))
 promo_weekly <- promo_raw |>
   mutate(week_start = lubridate::floor_date(as.Date(start), unit = "week", week_start = 1)) |>
@@ -206,7 +206,7 @@ promo_weekly <- promo_raw |>
 # -----------------------------------------------------------------------------
 # Store count (client-supplied operational data -> distribution control)
 # -----------------------------------------------------------------------------
-log("Cleaning store_count_weekly.csv...")
+log_msg("Cleaning store_count_weekly.csv...")
 store_raw <- read_raw_csv(here("data", "raw", "store_count_weekly.csv"))
 store_weekly <- store_raw |>
   distinct() |>
@@ -219,7 +219,7 @@ store_weekly <- store_raw |>
 # -----------------------------------------------------------------------------
 # External real data
 # -----------------------------------------------------------------------------
-log("Loading external data...")
+log_msg("Loading external data...")
 weather_weekly <- read_csv(here("data", "external", "weather_weekly.csv"), show_col_types = FALSE)
 consumer_confidence <- read_csv(here("data", "external", "consumer_confidence_monthly.csv"), show_col_types = FALSE)
 cpi_monthly <- read_csv(here("data", "external", "cpi_monthly.csv"), show_col_types = FALSE)
@@ -261,7 +261,7 @@ holiday_cols <- c("is_easter_week", "is_ascension_week", "is_whitmonday_week", "
 # -----------------------------------------------------------------------------
 # Assemble the final weekly modelling table
 # -----------------------------------------------------------------------------
-log("Assembling weekly modelling table...")
+log_msg("Assembling weekly modelling table...")
 weekly <- calendar |>
   select(week_start, iso_year, iso_week) |>
   left_join(sales_weekly, by = "week_start") |>
@@ -286,7 +286,7 @@ weekly <- calendar |>
 # for a handful of missing days rather than dropping the whole week.
 n_missing_revenue <- sum(is.na(weekly$revenue_dkk))
 if (n_missing_revenue > 0) {
-  log("  Interpolating %d week(s) with missing revenue (from dropped raw rows)", n_missing_revenue)
+  log_msg("  Interpolating %d week(s) with missing revenue (from dropped raw rows)", n_missing_revenue)
   weekly <- weekly |>
     mutate(revenue_was_interpolated = is.na(revenue_dkk),
            revenue_dkk = zoo::na.approx(revenue_dkk, na.rm = FALSE),
@@ -297,7 +297,7 @@ if (n_missing_revenue > 0) {
 }
 
 validate_weekly_table(weekly, expected_weeks = cfg$period$n_weeks)
-log("Validation PASSED: %d weeks, no missing weeks, no negative spend, revenue complete.", nrow(weekly))
+log_msg("Validation PASSED: %d weeks, no missing weeks, no negative spend, revenue complete.", nrow(weekly))
 
 # Reconciliation check: weekly aggregated spend vs raw daily total (DKK, post-conversion)
 for (ch in unique(media_long$channel)) {
@@ -306,7 +306,7 @@ for (ch in unique(media_long$channel)) {
     reconcile_totals(sum(weekly[[col]]), sum(media_long$spend_dkk[media_long$channel == ch]), label = col)
   }
 }
-log("Reconciliation PASSED for all channels.")
+log_msg("Reconciliation PASSED for all channels.")
 
 dir.create(here("data", "processed"), recursive = TRUE, showWarnings = FALSE)
 write_csv(weekly, here("data", "processed", "weekly_modelling_table.csv"))
@@ -341,5 +341,5 @@ dict <- tibble(column = names(weekly)) |>
   ))
 write_csv(dict, here("data", "processed", "data_dictionary.csv"))
 
-log("Done. Weekly modelling table: %d rows x %d cols", nrow(weekly), ncol(weekly))
-log("Wrote data/processed/weekly_modelling_table.{csv,rds} and data_dictionary.csv")
+log_msg("Done. Weekly modelling table: %d rows x %d cols", nrow(weekly), ncol(weekly))
+log_msg("Wrote data/processed/weekly_modelling_table.{csv,rds} and data_dictionary.csv")

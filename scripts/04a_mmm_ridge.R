@@ -26,7 +26,7 @@ source(here("R", "model_design.R"))
 source(here("R", "models_transform_search.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 quick <- Sys.getenv("MMM_QUICK", "0") == "1"
 mcfg <- read_yaml(here("config", "model_config.yml"))
@@ -47,14 +47,14 @@ holdout_n <- mcfg$holdout$final_holdout_weeks
 n_total <- nrow(wt)
 wt_train <- wt[seq_len(n_total - holdout_n), ]
 wt_holdout <- wt[seq(n_total - holdout_n + 1, n_total), ]
-log("Training weeks: %d, final untouched holdout weeks: %d (%s to %s)",
+log_msg("Training weeks: %d, final untouched holdout weeks: %d (%s to %s)",
     nrow(wt_train), nrow(wt_holdout), min(wt_holdout$week_start), max(wt_holdout$week_start))
 
 # -----------------------------------------------------------------------------
 # Random search over adstock/saturation transforms, scored by rolling-origin
 # CV RMSE within the training period only.
 # -----------------------------------------------------------------------------
-log("Running random search: %d draws over %d-dim transform space (rolling-origin CV, %s window/%s step/%s horizon weeks)...",
+log_msg("Running random search: %d draws over %d-dim transform space (rolling-origin CV, %s window/%s step/%s horizon weeks)...",
     n_draws, length(channels) * 3, cv_cfg$initial_window_weeks, cv_cfg$step_weeks, cv_cfg$horizon_weeks)
 
 t0 <- Sys.time()
@@ -62,11 +62,11 @@ search_result <- random_search_transforms(
   wt_train, channels, cv_cfg, mcfg$transform_search, n_draws,
   alpha = mcfg$glmnet$alpha, n_lambda = mcfg$glmnet$n_lambda, base_seed = mcfg$seed
 )
-log("Search done in %.1fs, %d CV folds per draw.", as.numeric(Sys.time() - t0, units = "secs"), search_result$n_folds)
+log_msg("Search done in %.1fs, %d CV folds per draw.", as.numeric(Sys.time() - t0, units = "secs"), search_result$n_folds)
 
 best <- search_result$summary |> slice(1)
 best_draw <- search_result$draws[[which(search_result$summary$draw_seed[1] == vapply(search_result$draws, `[[`, numeric(1), "seed"))]]$draw
-log("Best draw: seed=%d, CV RMSE=%.0f DKK (vs worst draw in search: %.0f DKK)",
+log_msg("Best draw: seed=%d, CV RMSE=%.0f DKK (vs worst draw in search: %.0f DKK)",
     best$draw_seed, best$cv_rmse, max(search_result$summary$cv_rmse, na.rm = TRUE))
 
 search_summary_out <- search_result$summary
@@ -83,13 +83,13 @@ params_table <- map_dfr(channels, function(ch) {
   tibble(channel = ch, decay = final_params[[ch]]$decay, ec = final_params[[ch]]$ec, shape = final_params[[ch]]$shape)
 })
 write_csv(params_table, here("results", "tables", "04a_best_transform_params.csv"))
-log("Chosen transform parameters:")
+log_msg("Chosen transform parameters:")
 print(params_table)
 
 d_train <- build_design(wt_train, channels, final_params)
 lower <- c(rep(0, length(channels)), rep(-Inf, length(mmm_control_cols())))
 
-log("Fitting final elastic net (alpha=%.2f) with CV-selected lambda...", mcfg$glmnet$alpha)
+log_msg("Fitting final elastic net (alpha=%.2f) with CV-selected lambda...", mcfg$glmnet$alpha)
 set.seed(mcfg$seed)
 cvfit <- cv.glmnet(d_train$X, d_train$y, alpha = mcfg$glmnet$alpha, lower.limits = lower,
                     nfolds = mcfg$glmnet$final_cv_folds, standardize = TRUE)
@@ -99,7 +99,7 @@ final_fit <- glmnet(d_train$X, d_train$y, alpha = mcfg$glmnet$alpha, lower.limit
 pred_train <- as.numeric(predict(final_fit, newx = d_train$X))
 train_r2 <- 1 - sum((d_train$y - pred_train)^2) / sum((d_train$y - mean(d_train$y))^2)
 train_rmse <- sqrt(mean((d_train$y - pred_train)^2))
-log("Final model (training fit): R^2=%.3f, RMSE=%.0f DKK", train_r2, train_rmse)
+log_msg("Final model (training fit): R^2=%.3f, RMSE=%.0f DKK", train_r2, train_rmse)
 
 # -----------------------------------------------------------------------------
 # Media coefficients, contributions, and implied ROAS on the training period
@@ -118,11 +118,11 @@ roas_table <- map_dfr(channels, function(ch) {
          roas = contrib / spend, coefficient = media_coefs$coefficient[media_coefs$channel == ch])
 }) |> arrange(desc(roas))
 write_csv(roas_table, here("results", "tables", "04a_channel_roas.csv"))
-log("Ridge/elastic-net MMM: estimated ROAS by channel (training period):")
+log_msg("Ridge/elastic-net MMM: estimated ROAS by channel (training period):")
 print(roas_table |> select(channel, total_spend_dkk, roas))
 
 n_zeroed <- sum(media_coefs$coefficient == 0)
-log("%d of %d channels shrunk to exactly zero by the elastic net penalty.", n_zeroed, length(channels))
+log_msg("%d of %d channels shrunk to exactly zero by the elastic net penalty.", n_zeroed, length(channels))
 
 total_contrib <- rowSums(contributions)
 baseline_contrib <- pred_train - total_contrib
@@ -136,20 +136,20 @@ decomposition <- tibble(
 write_csv(decomposition, here("results", "tables", "04a_decomposition.csv"))
 
 media_share <- mean(total_contrib / d_train$y)
-log("Media share of predicted revenue (training period): %.1f%%", media_share * 100)
+log_msg("Media share of predicted revenue (training period): %.1f%%", media_share * 100)
 if (media_share > 0.40) {
-  log("NOTE: this is a known limitation of the regularised model, not a bug -- see docs/methodology.md.")
-  log("  With media and seasonal controls this collinear, CV-optimal regularisation (chosen purely for")
-  log("  predictive fit) does not pin down a unique causal media/baseline split: several very different")
-  log("  attributions fit the data almost equally well. This is exactly why scripts/04b (Bayesian, with")
-  log("  informative priors) and scripts/07 (geo experiment calibration) exist -- predictive accuracy")
-  log("  alone is not sufficient for a trustworthy budget-allocation decision.")
+  log_msg("NOTE: this is a known limitation of the regularised model, not a bug -- see docs/methodology.md.")
+  log_msg("  With media and seasonal controls this collinear, CV-optimal regularisation (chosen purely for")
+  log_msg("  predictive fit) does not pin down a unique causal media/baseline split: several very different")
+  log_msg("  attributions fit the data almost equally well. This is exactly why scripts/04b (Bayesian, with")
+  log_msg("  informative priors) and scripts/07 (geo experiment calibration) exist -- predictive accuracy")
+  log_msg("  alone is not sufficient for a trustworthy budget-allocation decision.")
 }
 
 # -----------------------------------------------------------------------------
 # Response curves (saturation curves) per channel, at the fitted transform
 # -----------------------------------------------------------------------------
-log("Building response curves...")
+log_msg("Building response curves...")
 response_curves <- map_dfr(channels, function(ch) {
   p <- final_params[[ch]]
   max_spend <- max(wt_train[[paste0("spend_", ch)]]) * 2.5
@@ -200,4 +200,4 @@ saveRDS(list(
   holdout_n = holdout_n, media_coefs = media_coefs
 ), here("results", "models", "04a_ridge_model.rds"))
 
-log("Done. Wrote model to results/models/04a_ridge_model.rds, tables/figures with prefix 04a_")
+log_msg("Done. Wrote model to results/models/04a_ridge_model.rds, tables/figures with prefix 04a_")

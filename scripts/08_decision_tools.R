@@ -23,7 +23,7 @@ source(here("R", "model_design.R"))
 source(here("R", "optimisation.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 mcfg <- read_yaml(here("config", "model_config.yml"))
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
@@ -37,7 +37,7 @@ mean_revenue <- bayes_model$mean_revenue
 
 wt <- readRDS(here("data", "processed", "weekly_modelling_table.rds")) |> add_time_features()
 current_spend <- setNames(sapply(channels, function(ch) mean(tail(wt[[paste0("spend_", ch)]], 26))), channels)
-log("Current spend baseline (mean of last 26 weeks): total %.0f DKK/week", sum(current_spend))
+log_msg("Current spend baseline (mean of last 26 weeks): total %.0f DKK/week", sum(current_spend))
 
 # -----------------------------------------------------------------------------
 # Posterior draws for each channel's nlpar coefficient (use the geo-
@@ -50,7 +50,7 @@ colnames(beta_draws_mat) <- channels
 
 calibrated_path <- here("results", "models", "07_bayesian_calibrated.rds")
 if (file.exists(calibrated_path)) {
-  log("Using geo-experiment-calibrated posterior for social_prospecting.")
+  log_msg("Using geo-experiment-calibrated posterior for social_prospecting.")
   calibrated <- readRDS(calibrated_path)
   draws_cal <- as_draws_matrix(calibrated$fit)
   prospecting_idx <- which(channels == "social_prospecting")
@@ -63,16 +63,16 @@ if (file.exists(calibrated_path)) {
 # Budget allocator
 # -----------------------------------------------------------------------------
 ocfg <- mcfg$optimiser
-log("Optimising budget allocation (+/-%.0f%% bounds, %.0f%% contractual minimum)...",
+log_msg("Optimising budget allocation (+/-%.0f%% bounds, %.0f%% contractual minimum)...",
     ocfg$bound_pct * 100, ocfg$contractual_minimum_pct * 100)
 
 opt_result <- optimise_budget(current_spend, total_budget = sum(current_spend), params = params,
                                beta_draws_mat = beta_draws_mat, mean_revenue = mean_revenue,
                                bound_pct = ocfg$bound_pct, contractual_minimum_pct = ocfg$contractual_minimum_pct)
-log("Optimiser converged: %s (%s)", opt_result$converged, opt_result$message)
+log_msg("Optimiser converged: %s (%s)", opt_result$converged, opt_result$message)
 
 comparison <- compare_allocations(opt_result$optimal_spend, current_spend, params, beta_draws_mat, mean_revenue)
-log("Optimal vs. current mix: expected uplift %.0f DKK/week [%.0f, %.0f], P(beats current)=%.1f%%",
+log_msg("Optimal vs. current mix: expected uplift %.0f DKK/week [%.0f, %.0f], P(beats current)=%.1f%%",
     comparison$expected_uplift_dkk, comparison$uplift_lower, comparison$uplift_upper, comparison$prob_beats_baseline * 100)
 
 allocation_table <- tibble(
@@ -80,7 +80,7 @@ allocation_table <- tibble(
 ) |>
   mutate(change_pct = (optimal_spend_dkk - current_spend_dkk) / current_spend_dkk * 100)
 write_csv(allocation_table, here("results", "tables", "08_budget_allocation.csv"))
-log("Recommended reallocation:")
+log_msg("Recommended reallocation:")
 print(allocation_table)
 
 write_csv(
@@ -111,7 +111,7 @@ ggsave(here("results", "figures", "08_budget_allocation.png"), p_alloc_plot, wid
 # NEXT N weeks, predict revenue with uncertainty, continuing adstock
 # carryover from the end of the observed series.
 # -----------------------------------------------------------------------------
-log("Running the campaign simulator on an example 4-week plan (+20%% social_prospecting, flat elsewhere)...")
+log_msg("Running the campaign simulator on an example 4-week plan (+20%% social_prospecting, flat elsewhere)...")
 simulate_campaign <- function(spend_plan, channels, params, history_spend, beta_draws_mat, mean_revenue, control_baseline_scaled) {
   n_new <- nrow(spend_plan)
   contrib_by_draw <- sapply(channels, function(ch) {
@@ -139,7 +139,7 @@ avg_recent_baseline_scaled <- mean(tail(wt$revenue_dkk, 8)) / mean_revenue - mea
 example_plan <- as_tibble(setNames(lapply(channels, function(ch) rep(current_spend[[ch]] * ifelse(ch == "social_prospecting", 1.2, 1.0), 4)), channels))
 campaign_result <- simulate_campaign(example_plan, channels, params, history_spend, beta_draws_mat, mean_revenue, avg_recent_baseline_scaled)
 write_csv(campaign_result, here("results", "tables", "08_campaign_simulation_example.csv"))
-log("Example campaign simulation (4 weeks, +20%% social_prospecting):")
+log_msg("Example campaign simulation (4 weeks, +20%% social_prospecting):")
 print(campaign_result)
 
 # -----------------------------------------------------------------------------
@@ -147,7 +147,7 @@ print(campaign_result)
 # warm vs. cold spring (temperature). Uses the "baseline" nlpar's posterior
 # coefficients for the relevant controls.
 # -----------------------------------------------------------------------------
-log("Running non-media driver scenarios...")
+log_msg("Running non-media driver scenarios...")
 baseline_coef_names <- paste0("b_baseline_", mmm_control_cols())
 baseline_draws <- sapply(mmm_control_cols(), function(cc) {
   nm <- paste0("b_baseline_", cc)
@@ -175,7 +175,7 @@ scenarios <- tibble(
 # drop that scenario row rather than report a meaningless number.
 scenarios <- scenarios |> filter(scenario != "Competitor promotion (+10 index pts pressure)")
 write_csv(scenarios, here("results", "tables", "08_scenarios.csv"))
-log("Non-media scenarios (mean weekly revenue impact):")
+log_msg("Non-media scenarios (mean weekly revenue impact):")
 print(scenarios)
 
-log("Done. Wrote tables/figures with prefix 08_")
+log_msg("Done. Wrote tables/figures with prefix 08_")

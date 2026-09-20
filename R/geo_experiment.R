@@ -76,7 +76,7 @@ assign_treatment <- function(muni_df, seed) {
 #' @param noise_sd Idiosyncratic per-muni-week noise (per-capita revenue units).
 #' @param muni_fe_sd SD of municipality fixed effects (per-capita heterogeneity).
 simulate_geo_panel <- function(wt_truth, muni_df, pre_weeks, post_weeks, window_end_week_index,
-                                noise_sd = 0.06, muni_fe_sd = 0.15, seed) {
+                                noise_sd = 0.015, muni_fe_sd = 0.05, seed) {
   set.seed(seed)
   total_pop <- sum(muni_df$population)
   weeks_idx <- seq(window_end_week_index - pre_weeks + 1, window_end_week_index + post_weeks)

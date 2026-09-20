@@ -25,7 +25,7 @@ source(here("R", "model_design.R"))
 source(here("R", "models_bayesian.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 quick <- Sys.getenv("MMM_QUICK", "0") == "1"
 mcfg <- read_yaml(here("config", "model_config.yml"))
@@ -43,7 +43,7 @@ if (requireNamespace("cmdstanr", quietly = TRUE)) {
   cmdstan_ok <- tryCatch({ cmdstanr::cmdstan_path(); TRUE }, error = function(e) FALSE)
   if (cmdstan_ok) backend <- "cmdstanr"
 }
-log("Using Stan backend: %s", backend)
+log_msg("Using Stan backend: %s", backend)
 
 wt <- readRDS(here("data", "processed", "weekly_modelling_table.rds")) |> add_time_features()
 ridge_model <- readRDS(here("results", "models", "04a_ridge_model.rds"))
@@ -51,7 +51,7 @@ final_params <- ridge_model$params
 holdout_n <- ridge_model$holdout_n
 n_total <- nrow(wt)
 wt_train <- wt[seq_len(n_total - holdout_n), ]
-log("Reusing 04a's chosen media transforms (decay/ec/shape) for the Bayesian model.")
+log_msg("Reusing 04a's chosen media transforms (decay/ec/shape) for the Bayesian model.")
 
 media_mat <- build_media_matrix(wt_train, channels, final_params)
 control_mat <- as.matrix(wt_train[, mmm_control_cols()])
@@ -63,7 +63,7 @@ model_df <- as_tibble(media_mat) |>
 
 fp <- build_bayes_formula_priors(channels, mmm_control_cols(), bcfg)
 
-log("Fitting brms model: %d chains, %d warmup, %d sampling iterations (media_effect_prior_sd=%.2f)...",
+log_msg("Fitting brms model: %d chains, %d warmup, %d sampling iterations (media_effect_prior_sd=%.2f)...",
     mcmc_cfg$chains, mcmc_cfg$iter_warmup, mcmc_cfg$iter_sampling, bcfg$media_effect_prior_sd)
 t0 <- Sys.time()
 fit <- brm(
@@ -79,7 +79,7 @@ fit <- brm(
   control = list(adapt_delta = bcfg$adapt_delta, max_treedepth = bcfg$max_treedepth),
   refresh = 200  # periodic progress output -- silent long-running jobs (refresh=0) appear to get killed in this sandbox
 )
-log("MCMC done in %.1f minutes.", as.numeric(Sys.time() - t0, units = "mins"))
+log_msg("MCMC done in %.1f minutes.", as.numeric(Sys.time() - t0, units = "mins"))
 
 # -----------------------------------------------------------------------------
 # Convergence diagnostics
@@ -87,18 +87,18 @@ log("MCMC done in %.1f minutes.", as.numeric(Sys.time() - t0, units = "mins"))
 summ <- summary(fit)
 rhat_max <- max(summ$fixed$Rhat, na.rm = TRUE)
 ess_min <- min(summ$fixed$Bulk_ESS, na.rm = TRUE)
-log("Convergence: max Rhat=%.3f (want <1.01), min bulk ESS=%.0f (want >400)", rhat_max, ess_min)
-if (rhat_max > 1.05) log("WARNING: some parameters have not converged well (Rhat > 1.05).")
+log_msg("Convergence: max Rhat=%.3f (want <1.01), min bulk ESS=%.0f (want >400)", rhat_max, ess_min)
+if (rhat_max > 1.05) log_msg("WARNING: some parameters have not converged well (Rhat > 1.05).")
 
 divergences <- sum(brms::nuts_params(fit, pars = "divergent__")$Value)
-log("Divergent transitions: %d", divergences)
+log_msg("Divergent transitions: %d", divergences)
 
 write_csv(as_tibble(summ$fixed, rownames = "parameter"), here("results", "tables", "04b_mcmc_summary.csv"))
 
 # -----------------------------------------------------------------------------
 # Posterior predictive checks
 # -----------------------------------------------------------------------------
-log("Posterior predictive checks...")
+log_msg("Posterior predictive checks...")
 pp_plot <- pp_check(fit, ndraws = 100) +
   labs(title = "Posterior predictive check: y_scaled (revenue / mean training revenue)") +
   mmm_theme()
@@ -107,17 +107,17 @@ ggsave(here("results", "figures", "04b_posterior_predictive_check.png"), pp_plot
 pred_scaled <- posterior_predict(fit)
 pred_mean_dkk <- colMeans(pred_scaled) * mean_revenue
 bayes_r2_val <- bayes_R2(fit)
-log("Bayesian R^2: mean=%.3f, 90%% CI [%.3f, %.3f]", bayes_r2_val[1, "Estimate"], bayes_r2_val[1, "Q2.5"], bayes_r2_val[1, "Q97.5"])
+log_msg("Bayesian R^2: mean=%.3f, 90%% CI [%.3f, %.3f]", bayes_r2_val[1, "Estimate"], bayes_r2_val[1, "Q2.5"], bayes_r2_val[1, "Q97.5"])
 
 # -----------------------------------------------------------------------------
 # Posterior ROAS and contribution by channel, 90% credible intervals
 # -----------------------------------------------------------------------------
-log("Computing posterior channel summaries (90%% credible intervals)...")
+log_msg("Computing posterior channel summaries (90%% credible intervals)...")
 spend_totals <- setNames(as.list(colSums(wt_train[, paste0("spend_", channels)])), channels)
 channel_summary <- posterior_channel_summary(fit, media_mat, spend_totals, mean_revenue, prob = 0.90) |>
   arrange(desc(roas_mean))
 write_csv(channel_summary, here("results", "tables", "04b_channel_roas_posterior.csv"))
-log("Posterior ROAS by channel (90%% CI):")
+log_msg("Posterior ROAS by channel (90%% CI):")
 print(channel_summary |> select(channel, roas_mean, roas_lower, roas_upper))
 
 media_share_draws <- {
@@ -126,7 +126,7 @@ media_share_draws <- {
   total_contrib_draws <- rowSums(contrib_per_draw) * mean_revenue
   total_contrib_draws / sum(wt_train$revenue_dkk)
 }
-log("Bayesian model media share of revenue: mean=%.1f%%, 90%% CI [%.1f%%, %.1f%%] (vs 04a's point estimate 63.5%%, true 16.6%%)",
+log_msg("Bayesian model media share of revenue: mean=%.1f%%, 90%% CI [%.1f%%, %.1f%%] (vs 04a's point estimate 63.5%%, true 16.6%%)",
     mean(media_share_draws) * 100, quantile(media_share_draws, 0.05) * 100, quantile(media_share_draws, 0.95) * 100)
 
 p_roas_bayes <- ggplot(channel_summary, aes(reorder(channel, roas_mean), roas_mean)) +
@@ -148,4 +148,4 @@ saveRDS(list(
   rhat_max = rhat_max, divergences = divergences, channel_summary = channel_summary
 ), here("results", "models", "04b_bayesian_model.rds"))
 
-log("Done. Wrote model to results/models/04b_bayesian_model.rds, tables/figures with prefix 04b_")
+log_msg("Done. Wrote model to results/models/04b_bayesian_model.rds, tables/figures with prefix 04b_")

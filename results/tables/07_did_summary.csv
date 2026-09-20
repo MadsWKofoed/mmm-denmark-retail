@@ -1,0 +1,2 @@
+did_estimate,did_se_clustered,permutation_sd,mde_90pct_power_dkk_percapita,achieved_power_pct,randomization_inference_p,bootstrap_ci_lower,bootstrap_ci_upper
+-0.06519991786522,0.02438139931130444,0.025170423032819977,0.08159031766309491,73.57752360598253,0.004,-0.10641316290564903,-0.028309973957433687

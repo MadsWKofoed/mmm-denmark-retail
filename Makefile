@@ -21,6 +21,8 @@ all:
 	$(RSCRIPT) scripts/07_geo_experiment.R
 	$(RSCRIPT) scripts/08_decision_tools.R
 	$(RSCRIPT) scripts/09_refresh_backtest.R
+	$(RSCRIPT) scripts/10_build_excel_workbook.R
+	quarto render reports/deck.qmd
 
 # Fast smoke version: reduced CV grid / MCMC iterations, for quick checks.
 quick:
@@ -37,6 +39,9 @@ quick:
 
 test:
 	$(RSCRIPT) -e 'testthat::test_dir("tests/testthat")'
+
+app:
+	$(RSCRIPT) -e 'shiny::runApp("app")'
 
 clean:
 	rm -rf data/processed/* data/raw/* results/models/* results/tables/* results/figures/*

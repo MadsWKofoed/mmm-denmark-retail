@@ -1,0 +1,2 @@
+channel,true_roas,roas_before_calibration,roas_before_lower,roas_before_upper,roas_after_calibration,roas_after_lower,roas_after_upper,error_before,error_after
+social_prospecting,2.6,2.3295905399314125,0.24020312785553286,5.473416816693608,2.4814239572952554,0.9994353777523899,3.9787873018351574,0.27040946006858757,0.11857604270474464

@@ -231,20 +231,20 @@ build_promo_calendar <- function() {
   write_xlsx(promo, here("data", "raw", "promo_calendar.xlsx"))
 }
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
-log("Building google_ads_daily.csv..."); build_google_ads()
-log("Building meta_ads_daily.csv..."); build_meta_ads()
-log("Building programmatic_daily.csv..."); build_programmatic()
-log("Building tv_spots.csv..."); build_tv_spots()
-log("Building ooh_bookings.csv..."); build_ooh()
-log("Building leaflet_costs_weekly.csv..."); build_leaflets()
-log("Building store_count_weekly.csv..."); build_store_count()
-log("Building client_sales_daily.csv..."); build_client_sales()
-log("Building promo_calendar.xlsx..."); build_promo_calendar()
+log_msg("Building google_ads_daily.csv..."); build_google_ads()
+log_msg("Building meta_ads_daily.csv..."); build_meta_ads()
+log_msg("Building programmatic_daily.csv..."); build_programmatic()
+log_msg("Building tv_spots.csv..."); build_tv_spots()
+log_msg("Building ooh_bookings.csv..."); build_ooh()
+log_msg("Building leaflet_costs_weekly.csv..."); build_leaflets()
+log_msg("Building store_count_weekly.csv..."); build_store_count()
+log_msg("Building client_sales_daily.csv..."); build_client_sales()
+log_msg("Building promo_calendar.xlsx..."); build_promo_calendar()
 
 file.copy(here("config", "taxonomy_map.csv"), here("data", "raw", "taxonomy_map.csv"), overwrite = TRUE)
 
-log("Done. Raw exports written to data/raw/")
-walk(list.files(here("data", "raw")), ~ log("  %s (%s KB)", .x,
+log_msg("Done. Raw exports written to data/raw/")
+walk(list.files(here("data", "raw")), ~ log_msg("  %s (%s KB)", .x,
      round(file.size(here("data", "raw", .x)) / 1024, 1)))

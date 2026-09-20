@@ -25,7 +25,7 @@ source(here("R", "plotting.R"))
 dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 wt <- readRDS(here("data", "processed", "weekly_modelling_table.rds"))
 spend_cols <- names(wt) |> keep(~ str_starts(.x, "spend_"))
@@ -34,7 +34,7 @@ channel_names <- str_remove(spend_cols, "spend_")
 # -----------------------------------------------------------------------------
 # 1. Revenue over time
 # -----------------------------------------------------------------------------
-log("Plotting revenue over time...")
+log_msg("Plotting revenue over time...")
 p_revenue <- ggplot(wt, aes(week_start, revenue_dkk)) +
   geom_line(color = mmm_pal("primary")) +
   scale_y_continuous(labels = label_number(scale = 1e-6, suffix = "M")) +
@@ -45,7 +45,7 @@ ggsave(here("results", "figures", "02_revenue_over_time.png"), p_revenue, width 
 # -----------------------------------------------------------------------------
 # 2. Spend patterns by channel (stacked area + small multiples)
 # -----------------------------------------------------------------------------
-log("Plotting spend patterns...")
+log_msg("Plotting spend patterns...")
 spend_long <- wt |>
   select(week_start, all_of(spend_cols)) |>
   pivot_longer(-week_start, names_to = "channel", values_to = "spend_dkk") |>
@@ -62,7 +62,7 @@ ggsave(here("results", "figures", "02_spend_by_channel.png"), p_spend_small_mult
 # -----------------------------------------------------------------------------
 # 3. Correlation matrix of media spend (the TV/OOH/video collinearity trap)
 # -----------------------------------------------------------------------------
-log("Computing spend correlation matrix...")
+log_msg("Computing spend correlation matrix...")
 spend_matrix <- wt |> select(all_of(spend_cols)) |> rename_with(~ str_remove(.x, "spend_"))
 cor_mat <- cor(spend_matrix)
 write_csv(as_tibble(cor_mat, rownames = "channel"), here("results", "tables", "02_spend_correlation_matrix.csv"))
@@ -80,7 +80,7 @@ p_cor <- ggplot(cor_long, aes(channel_1, channel_2, fill = correlation)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ggsave(here("results", "figures", "02_spend_correlation.png"), p_cor, width = 8, height = 7, dpi = 130)
 
-log("Top spend correlations (|r| > 0.3, excluding diagonal):")
+log_msg("Top spend correlations (|r| > 0.3, excluding diagonal):")
 top_cor <- cor_long |> filter(channel_1 < channel_2, abs(correlation) > 0.3) |> arrange(desc(abs(correlation)))
 print(top_cor)
 
@@ -88,19 +88,19 @@ print(top_cor)
 # 4. Variance Inflation Factors on raw (untransformed) spend
 #    -- flags the exact multicollinearity that will make naive OLS unstable
 # -----------------------------------------------------------------------------
-log("Computing VIF on raw spend (predicting revenue)...")
+log_msg("Computing VIF on raw spend (predicting revenue)...")
 vif_formula <- as.formula(paste("revenue_dkk ~", paste(spend_cols, collapse = " + ")))
 vif_model <- lm(vif_formula, data = wt)
 vif_vals <- car::vif(vif_model)
 vif_table <- tibble(channel = str_remove(names(vif_vals), "spend_"), vif = vif_vals) |> arrange(desc(vif))
 write_csv(vif_table, here("results", "tables", "02_vif_raw_spend.csv"))
-log("VIF table (values > 5 indicate problematic collinearity):")
+log_msg("VIF table (values > 5 indicate problematic collinearity):")
 print(vif_table)
 
 # -----------------------------------------------------------------------------
 # 5. Seasonal decomposition of revenue
 # -----------------------------------------------------------------------------
-log("Seasonal decomposition of revenue...")
+log_msg("Seasonal decomposition of revenue...")
 rev_ts <- ts(wt$revenue_dkk, frequency = 52)
 decomp <- stl(rev_ts, s.window = "periodic", robust = TRUE)
 png(here("results", "figures", "02_seasonal_decomposition.png"), width = 1000, height = 800, res = 130)
@@ -110,7 +110,7 @@ dev.off()
 # -----------------------------------------------------------------------------
 # 6. Stationarity tests (ADF, KPSS) on revenue and total media spend
 # -----------------------------------------------------------------------------
-log("Running stationarity tests...")
+log_msg("Running stationarity tests...")
 total_spend <- rowSums(wt |> select(all_of(spend_cols)))
 stationarity <- tibble(
   series = c("revenue_dkk", "total_media_spend"),
@@ -119,7 +119,7 @@ stationarity <- tibble(
   kpss_stat = c(urca::ur.kpss(wt$revenue_dkk)@teststat, urca::ur.kpss(total_spend)@teststat)
 )
 write_csv(stationarity, here("results", "tables", "02_stationarity_tests.csv"))
-log("Stationarity results (ADF null = unit root/non-stationary; KPSS null = stationary):")
+log_msg("Stationarity results (ADF null = unit root/non-stationary; KPSS null = stationary):")
 print(stationarity)
 
 # -----------------------------------------------------------------------------
@@ -127,7 +127,7 @@ print(stationarity)
 #    would show, to be directly compared against MMM-estimated incrementality
 #    later. Not adjusted for anything; this is literally last-click / spend.
 # -----------------------------------------------------------------------------
-log("Computing platform-reported ROAS by channel...")
+log_msg("Computing platform-reported ROAS by channel...")
 platform_roas <- channel_names |>
   map_dfr(function(ch) {
     spend <- sum(wt[[paste0("spend_", ch)]])
@@ -143,7 +143,7 @@ platform_roas <- channel_names |>
   }) |>
   arrange(desc(platform_reported_roas))
 write_csv(platform_roas, here("results", "tables", "02_platform_reported_roas.csv"))
-log("Platform-reported ROAS by channel (NA = no last-click attribution available, e.g. TV/OOH/print):")
+log_msg("Platform-reported ROAS by channel (NA = no last-click attribution available, e.g. TV/OOH/print):")
 print(platform_roas)
 
 p_roas <- ggplot(platform_roas |> filter(!is.na(platform_reported_roas)),
@@ -156,4 +156,4 @@ p_roas <- ggplot(platform_roas |> filter(!is.na(platform_reported_roas)),
   mmm_theme()
 ggsave(here("results", "figures", "02_platform_reported_roas.png"), p_roas, width = 8, height = 5, dpi = 130)
 
-log("Done. Wrote figures and tables to results/figures/ and results/tables/ (prefix 02_)")
+log_msg("Done. Wrote figures and tables to results/figures/ and results/tables/ (prefix 02_)")

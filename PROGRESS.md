@@ -73,8 +73,17 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 ## Phase 6 (ML benchmark) — DONE
 - [x] `scripts/06_ml_benchmark.R`: xgboost + ranger, same rolling-origin CV design. xgboost holdout MAPE 6.7% (2nd best overall, beats every MMM/baseline except seasonal naive), ranger 8.7%. Feature importance (gain/impurity) is NOT a contribution/ROAS decomposition -- explicitly flagged as the central "why predictive accuracy alone isn't enough for budget decisions" point requested by the brief.
 
-## Phase 7 (geo experiment + calibration) / Phase 6 in repo numbering — IN PROGRESS
-- [ ] `scripts/07_geo_experiment.R` drafted, not yet run end-to-end.
+## Phase 7 (geo experiment + calibration) — DONE
+- [x] `R/geo_experiment.R`: 98 real Danish municipality names with simulated (not real) population weights, simple random treatment assignment, per-capita panel construction.
+- [x] `scripts/07_geo_experiment.R`: two-way fixed-effects DiD (fixest), event study, parallel-trends Wald test, 500-permutation randomisation inference, 500-resample cluster bootstrap, power/MDE, and a Bayesian recalibration for social_prospecting.
+- DiD estimate: -0.07 DKK/capita/week (clustered SE 0.02, p=0.0088), implying a national weekly lift of ~340,468 DKK (SE 127,317) from having prospecting on -- close to the true average weekly contribution (~386,000 DKK). Randomisation-inference p=0.004. Parallel trends holds (Wald p=0.099). Event-study plot is textbook: flat noisy pre-period, clean sustained drop exactly at test start.
+- Achieved power for the observed effect: 73.6%; MDE at 90% power: 0.08 DKK/capita.
+- Experiment-implied ROAS: 2.42 (SE 0.91) vs. true 2.6 -- a good independent check.
+- **Calibration works:** feeding the experiment estimate in as an informative prior and refitting improves social_prospecting's recovery (error vs. true ROAS: 0.27 -> 0.12) and tightens the 90% credible interval from [0.24, 5.47] to [1.00, 3.98].
+
+**Two bugs found and fixed:**
+1. A latent footgun present in every script: `log <- function(...) cat(...)` (a console-logging helper) shadows base R's `log()` math function for any sourced `R/*.R` function that calls it, since `source()` evaluates into the global environment. Bit exactly once -- `danish_municipalities()` calling `log(28000)` -- but renamed to `log_msg` across all 12 affected scripts to remove the whole class of risk rather than patch the one call site.
+2. The geo panel's first noise calibration (municipality-level heterogeneity + idiosyncratic noise) was large enough to swamp the tiny true per-capita signal, producing a completely non-significant experiment (randomisation p=0.67) -- not a bug, just bad initial power assumptions, caught by sanity-checking the SE against the signal before trusting the result. Retuned noise levels to a realistic, well-powered design and documented the original underpowered attempt in `docs/assumptions_and_limitations.md` as a deliberate illustration of why experiment power matters.
 
 ## Phase 8 (decision tools) — drafted, not yet run
 - [ ] `scripts/08_decision_tools.R`, `R/optimisation.R` drafted.

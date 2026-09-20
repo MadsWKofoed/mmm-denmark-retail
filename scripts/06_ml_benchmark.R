@@ -24,7 +24,7 @@ source(here("R", "model_design.R"))
 source(here("R", "models_transform_search.R"))
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 mcfg <- read_yaml(here("config", "model_config.yml"))
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
@@ -61,7 +61,7 @@ accuracy_metrics <- function(actual, predicted, model_name) {
 # -----------------------------------------------------------------------------
 cv_cfg <- mcfg$cv$full
 folds <- rolling_origin_folds(nrow(wt_train), cv_cfg$initial_window_weeks, cv_cfg$step_weeks, cv_cfg$horizon_weeks)
-log("Running rolling-origin CV for xgboost and ranger (%d folds)...", length(folds))
+log_msg("Running rolling-origin CV for xgboost and ranger (%d folds)...", length(folds))
 
 cv_results <- map_dfr(seq_along(folds), function(i) {
   fold <- folds[[i]]
@@ -83,13 +83,13 @@ cv_results <- map_dfr(seq_along(folds), function(i) {
 write_csv(cv_results, here("results", "tables", "06_ml_rolling_cv_metrics.csv"))
 
 cv_summary <- cv_results |> group_by(model) |> summarise(mean_mape = mean(mape_pct), mean_rmse = mean(rmse), mean_r2 = mean(r2), .groups = "drop")
-log("Rolling-origin CV summary (ML models, training period):")
+log_msg("Rolling-origin CV summary (ML models, training period):")
 print(cv_summary)
 
 # -----------------------------------------------------------------------------
 # Final fit on full training data, evaluate on the untouched holdout
 # -----------------------------------------------------------------------------
-log("Fitting final xgboost and ranger on full training data...")
+log_msg("Fitting final xgboost and ranger on full training data...")
 xgb_final <- xgboost(data = X_train, label = y_train, nrounds = 150, max_depth = 3, eta = 0.05,
                       subsample = 0.8, colsample_bytree = 0.8, objective = "reg:squarederror", verbose = 0)
 xgb_pred_test <- predict(xgb_final, X_test)
@@ -112,7 +112,7 @@ if (file.exists(mmm_holdout_path)) {
   full_comparison <- holdout_comparison_ml
 }
 write_csv(full_comparison, here("results", "tables", "06_holdout_comparison_with_ml.csv"))
-log("Holdout comparison including ML models:")
+log_msg("Holdout comparison including ML models:")
 print(full_comparison)
 
 # -----------------------------------------------------------------------------
@@ -127,7 +127,7 @@ importance_table <- full_join(xgb_importance, rf_importance, by = "feature") |>
   mutate(channel = str_remove(feature, "spend_")) |>
   arrange(desc(xgb_gain))
 write_csv(importance_table, here("results", "tables", "06_ml_feature_importance.csv"))
-log("Media spend feature importance (xgboost gain, ranger impurity) -- NOTE these are NOT ROAS or DKK contributions:")
+log_msg("Media spend feature importance (xgboost gain, ranger impurity) -- NOTE these are NOT ROAS or DKK contributions:")
 print(importance_table |> select(channel, xgb_gain, rf_importance))
 
 p_importance <- importance_table |>
@@ -149,7 +149,7 @@ ggsave(here("results", "figures", "06_ml_feature_importance.png"), p_importance,
 # plausible response shape) -- the MMM's transforms answer this by
 # construction (scripts/08_decision_tools.R relies on exactly this).
 # -----------------------------------------------------------------------------
-log("Done. Wrote tables/figures with prefix 06_.")
-log("Key point for the write-up: predictive accuracy (MAPE/RMSE) is not the same as a usable")
-log("budget-allocation answer -- xgboost/ranger have no structural media-response curve to")
-log("simulate spend changes with, unlike the MMM's adstock+Hill transforms.")
+log_msg("Done. Wrote tables/figures with prefix 06_.")
+log_msg("Key point for the write-up: predictive accuracy (MAPE/RMSE) is not the same as a usable")
+log_msg("budget-allocation answer -- xgboost/ranger have no structural media-response curve to")
+log_msg("simulate spend changes with, unlike the MMM's adstock+Hill transforms.")

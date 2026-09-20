@@ -30,7 +30,7 @@ source(here("R", "plotting.R"))
 dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 wt <- readRDS(here("data", "processed", "weekly_modelling_table.rds"))
 spend_cols <- names(wt) |> keep(~ str_starts(.x, "spend_"))
@@ -54,32 +54,32 @@ controls_formula_rhs <- paste(
 # -----------------------------------------------------------------------------
 # 1. Seasonal naive
 # -----------------------------------------------------------------------------
-log("Fitting seasonal naive baseline...")
+log_msg("Fitting seasonal naive baseline...")
 wt <- wt |> mutate(seasonal_naive_pred = lag(revenue_dkk, 52))
 sn_eval <- wt |> filter(!is.na(seasonal_naive_pred))
 sn_mape <- mean(abs((sn_eval$revenue_dkk - sn_eval$seasonal_naive_pred) / sn_eval$revenue_dkk)) * 100
 sn_rmse <- sqrt(mean((sn_eval$revenue_dkk - sn_eval$seasonal_naive_pred)^2))
-log("  Seasonal naive (revenue_t = revenue_{t-52}): MAPE=%.1f%%, RMSE=%.0f DKK (n=%d weeks evaluable)",
+log_msg("  Seasonal naive (revenue_t = revenue_{t-52}): MAPE=%.1f%%, RMSE=%.0f DKK (n=%d weeks evaluable)",
     sn_mape, sn_rmse, nrow(sn_eval))
 
 # -----------------------------------------------------------------------------
 # 2. No-media model
 # -----------------------------------------------------------------------------
-log("Fitting no-media model (controls only, no spend terms)...")
+log_msg("Fitting no-media model (controls only, no spend terms)...")
 no_media_formula <- as.formula(paste("revenue_dkk ~", controls_formula_rhs))
 no_media_fit <- lm(no_media_formula, data = wt)
 no_media_r2 <- summary(no_media_fit)$r.squared
 no_media_resid_sd <- sd(resid(no_media_fit))
-log("  No-media model R^2=%.3f (this is the ceiling controls alone can explain; the rest is media + noise)", no_media_r2)
+log_msg("  No-media model R^2=%.3f (this is the ceiling controls alone can explain; the rest is media + noise)", no_media_r2)
 
 # -----------------------------------------------------------------------------
 # 3. OLS on RAW spend + controls -- the naive approach
 # -----------------------------------------------------------------------------
-log("Fitting naive OLS on raw (untransformed) spend + controls...")
+log_msg("Fitting naive OLS on raw (untransformed) spend + controls...")
 ols_formula <- as.formula(paste("revenue_dkk ~", paste(spend_cols, collapse = " + "), "+", controls_formula_rhs))
 ols_fit <- lm(ols_formula, data = wt)
 ols_r2 <- summary(ols_fit)$r.squared
-log("  Naive OLS R^2=%.3f", ols_r2)
+log_msg("  Naive OLS R^2=%.3f", ols_r2)
 
 ols_coefs <- broom::tidy(ols_fit) |>
   filter(term %in% spend_cols) |>
@@ -88,16 +88,16 @@ ols_coefs <- broom::tidy(ols_fit) |>
          significant_at_5pct = p.value < 0.05)
 write_csv(ols_coefs, here("results", "tables", "03_naive_ols_coefficients.csv"))
 
-log("Naive OLS media coefficients (DKK revenue per DKK spend, i.e. should be a plausible ROAS if unbiased):")
+log_msg("Naive OLS media coefficients (DKK revenue per DKK spend, i.e. should be a plausible ROAS if unbiased):")
 print(ols_coefs |> select(channel, estimate, std.error, p.value, wrong_signed))
 n_wrong_signed <- sum(ols_coefs$wrong_signed)
-log("  %d of %d channels have a NEGATIVE (wrong-signed) coefficient despite genuinely positive true effects -- this is the collinearity from Phase 2 breaking OLS.",
+log_msg("  %d of %d channels have a NEGATIVE (wrong-signed) coefficient despite genuinely positive true effects -- this is the collinearity from Phase 2 breaking OLS.",
     n_wrong_signed, nrow(ols_coefs))
 
 # -----------------------------------------------------------------------------
 # Diagnostics on the naive OLS model
 # -----------------------------------------------------------------------------
-log("Running diagnostics on naive OLS (VIF, Durbin-Watson, Breusch-Godfrey, Breusch-Pagan)...")
+log_msg("Running diagnostics on naive OLS (VIF, Durbin-Watson, Breusch-Godfrey, Breusch-Pagan)...")
 
 vif_vals <- car::vif(ols_fit)
 vif_table <- tibble(term = names(vif_vals), vif = vif_vals) |>
@@ -121,7 +121,7 @@ diagnostics <- tibble(
   )
 )
 write_csv(diagnostics, here("results", "tables", "03_naive_ols_diagnostics.csv"))
-log("Diagnostic test results:")
+log_msg("Diagnostic test results:")
 print(diagnostics |> select(test, statistic, p_value))
 
 # Residual ACF
@@ -134,7 +134,7 @@ dev.off()
 # once we at least fix the SEs (though the point estimates are still biased
 # by the omitted adstock/saturation transforms and collinearity)
 # -----------------------------------------------------------------------------
-log("Computing Newey-West HAC standard errors...")
+log_msg("Computing Newey-West HAC standard errors...")
 hac_se <- lmtest::coeftest(ols_fit, vcov = sandwich::NeweyWest(ols_fit, lag = 4, prewhite = FALSE))
 hac_table <- broom::tidy(hac_se) |>
   filter(term %in% spend_cols) |>
@@ -142,7 +142,7 @@ hac_table <- broom::tidy(hac_se) |>
   rename(hac_std.error = std.error, hac_statistic = statistic, hac_p.value = p.value) |>
   select(channel, estimate, hac_std.error, hac_p.value)
 write_csv(hac_table, here("results", "tables", "03_naive_ols_hac_coefficients.csv"))
-log("With Newey-West HAC SEs, standard errors widen substantially -- several 'significant' effects from the naive OLS are no longer significant:")
+log_msg("With Newey-West HAC SEs, standard errors widen substantially -- several 'significant' effects from the naive OLS are no longer significant:")
 print(hac_table)
 
 # -----------------------------------------------------------------------------
@@ -181,7 +181,7 @@ baseline_summary <- tibble(
   )
 )
 write_csv(baseline_summary, here("results", "tables", "03_baseline_comparison.csv"))
-log("Baseline comparison:")
+log_msg("Baseline comparison:")
 print(baseline_summary |> select(model, in_sample_r2, mape_pct))
 
-log("Done. Wrote tables and figures to results/ (prefix 03_)")
+log_msg("Done. Wrote tables and figures to results/ (prefix 03_)")

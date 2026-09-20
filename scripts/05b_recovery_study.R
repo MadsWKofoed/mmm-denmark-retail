@@ -18,7 +18,7 @@ library(here)
 
 source(here("R", "plotting.R"))
 
-log <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
+log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
 dir.create(here("results", "tables"), recursive = TRUE, showWarnings = FALSE)
 dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
@@ -59,12 +59,12 @@ recovery <- truth_table |>
   arrange(desc(ridge_abs_error))
 
 write_csv(recovery, here("results", "tables", "05b_roas_recovery.csv"))
-log("ROAS recovery vs ground truth:")
+log_msg("ROAS recovery vs ground truth:")
 print(recovery |> select(channel, true_roas, ridge_roas, bayes_roas, known_endogenous, bayes_true_covered_90pct_ci))
 
-log("Bayesian model's 90%% credible interval contains the true ROAS for %d of %d channels.",
+log_msg("Bayesian model's 90%% credible interval contains the true ROAS for %d of %d channels.",
     sum(recovery$bayes_true_covered_90pct_ci), nrow(recovery))
-log("Bayesian estimate closer to truth than ridge point estimate for %d of %d channels.",
+log_msg("Bayesian estimate closer to truth than ridge point estimate for %d of %d channels.",
     sum(recovery$bayes_improves_on_ridge), nrow(recovery))
 
 # -----------------------------------------------------------------------------
@@ -78,7 +78,7 @@ decay_recovery <- truth_table |>
                                                      estimated_ec_dkk = ridge_model$params[[ch]]$ec)), by = "channel") |>
   mutate(decay_error = estimated_decay - true_decay, shape_error = estimated_shape - true_shape)
 write_csv(decay_recovery, here("results", "tables", "05b_transform_recovery.csv"))
-log("Adstock decay / Hill shape recovery (chosen by rolling-origin CV, never touching ground truth):")
+log_msg("Adstock decay / Hill shape recovery (chosen by rolling-origin CV, never touching ground truth):")
 print(decay_recovery |> select(channel, true_decay, estimated_decay, true_shape, estimated_shape))
 
 # -----------------------------------------------------------------------------
@@ -114,4 +114,4 @@ p_recovery <- ggplot(plot_df, aes(true_roas, estimated_roas, color = model)) +
   mmm_theme()
 ggsave(here("results", "figures", "05b_roas_recovery.png"), p_recovery, width = 9, height = 6.5, dpi = 130)
 
-log("Done. Wrote tables/figures with prefix 05b_. This is the honest scorecard for the whole MMM in this project.")
+log_msg("Done. Wrote tables/figures with prefix 05b_. This is the honest scorecard for the whole MMM in this project.")
