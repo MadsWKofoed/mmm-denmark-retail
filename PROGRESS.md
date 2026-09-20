@@ -85,8 +85,11 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 1. A latent footgun present in every script: `log <- function(...) cat(...)` (a console-logging helper) shadows base R's `log()` math function for any sourced `R/*.R` function that calls it, since `source()` evaluates into the global environment. Bit exactly once -- `danish_municipalities()` calling `log(28000)` -- but renamed to `log_msg` across all 12 affected scripts to remove the whole class of risk rather than patch the one call site.
 2. The geo panel's first noise calibration (municipality-level heterogeneity + idiosyncratic noise) was large enough to swamp the tiny true per-capita signal, producing a completely non-significant experiment (randomisation p=0.67) -- not a bug, just bad initial power assumptions, caught by sanity-checking the SE against the signal before trusting the result. Retuned noise levels to a realistic, well-powered design and documented the original underpowered attempt in `docs/assumptions_and_limitations.md` as a deliberate illustration of why experiment power matters.
 
-## Phase 8 (decision tools) — drafted, not yet run
-- [ ] `scripts/08_decision_tools.R`, `R/optimisation.R` drafted.
+## Phase 8 (decision tools) — DONE
+- [x] `R/optimisation.R`, `scripts/08_decision_tools.R`: nloptr SLSQP budget allocator (±40% per-channel bounds, 50% contractual minimum), uncertainty-aware via the (geo-calibrated where available) Bayesian posterior draws; campaign simulator with carryover-safe forecasting; non-media scenarios (consumer confidence, temperature).
+- Recommended reallocation: expected uplift +703,697 DKK/week (90% CI [297,187, 1,124,437]), P(beats current mix) = 100%.
+- **Important honest caveat, surfaced directly in the script's own output and the allocation table (`low_confidence_estimate` column):** the optimiser recommends MORE spend on search_brand and social_retargeting -- exactly the two channels whose posterior ROAS remains inflated by known, uncorrected endogeneity. A real recommendation should discount or exclude those channels pending further identification work; the optimiser has no way to know its own inputs are untrustworthy there, which is precisely the point being illustrated.
+- Competitor-pressure scenario dropped (no model control exists for it -- honest gap, matches docs/data_request.md).
 
 ## Phase 7 — Deliverables (README, deck, app, workbook, docs)
 - [ ] Not started

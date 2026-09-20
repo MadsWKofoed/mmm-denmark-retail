@@ -75,13 +75,27 @@ comparison <- compare_allocations(opt_result$optimal_spend, current_spend, param
 log_msg("Optimal vs. current mix: expected uplift %.0f DKK/week [%.0f, %.0f], P(beats current)=%.1f%%",
     comparison$expected_uplift_dkk, comparison$uplift_lower, comparison$uplift_upper, comparison$prob_beats_baseline * 100)
 
+# Channels with known endogeneity bias (05b_recovery_study.R) that calibration
+# (07) has NOT corrected -- their posterior ROAS is still inflated, so an
+# optimiser fed those numbers uncritically will recommend MORE spend on
+# exactly the channels least trustworthy. Flagged rather than silently acted on.
+low_confidence_channels <- c("search_brand", "social_retargeting")
+
 allocation_table <- tibble(
   channel = channels, current_spend_dkk = current_spend, optimal_spend_dkk = opt_result$optimal_spend
 ) |>
-  mutate(change_pct = (optimal_spend_dkk - current_spend_dkk) / current_spend_dkk * 100)
+  mutate(change_pct = (optimal_spend_dkk - current_spend_dkk) / current_spend_dkk * 100,
+         low_confidence_estimate = channel %in% low_confidence_channels)
 write_csv(allocation_table, here("results", "tables", "08_budget_allocation.csv"))
 log_msg("Recommended reallocation:")
 print(allocation_table)
+if (any(allocation_table$low_confidence_estimate & allocation_table$change_pct > 0)) {
+  log_msg("CAVEAT: the optimiser recommends MORE spend on %s -- these channels' posterior ROAS remains",
+          paste(allocation_table$channel[allocation_table$low_confidence_estimate & allocation_table$change_pct > 0], collapse = " and "))
+  log_msg("  inflated by known endogeneity (see 05b_recovery_study.R), uncorrected by the geo experiment (which only")
+  log_msg("  tested social_prospecting). A real recommendation should heavily discount or exclude these channels")
+  log_msg("  pending further identification work, not act on this allocation for them at face value.")
+}
 
 write_csv(
   tibble(expected_uplift_dkk = comparison$expected_uplift_dkk, uplift_lower_90 = comparison$uplift_lower,
