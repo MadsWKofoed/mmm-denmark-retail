@@ -52,6 +52,18 @@ resolve_ec_from_quantile <- function(spend, decay, ec_quantile) {
   as.numeric(stats::quantile(adstocked[adstocked > 0], ec_quantile, na.rm = TRUE))
 }
 
+#' Build the media matrix for a FULL weekly table (spanning training +
+#' holdout), then split by row index -- this preserves adstock carryover
+#' across the train/holdout boundary (adstock_geometric() is a recursive
+#' filter; transforming the holdout rows alone would incorrectly reset
+#' carryover to zero at the holdout's first week, biasing early-holdout
+#' predictions downward). Always use this, never build_media_matrix()
+#' directly, when a holdout period follows the training period in time.
+build_media_matrix_full_then_split <- function(wt_full, channels, params, train_idx, test_idx) {
+  mat_full <- build_media_matrix(wt_full, channels, params)
+  list(train = mat_full[train_idx, , drop = FALSE], test = mat_full[test_idx, , drop = FALSE])
+}
+
 #' Build the full design matrix (media + controls) and response vector for a
 #' weekly table + a resolved parameter set (ec already absolute, not quantile).
 build_design <- function(wt, channels, params) {

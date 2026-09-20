@@ -69,9 +69,12 @@ bayesian:
     iter_sampling: 200
   adapt_delta: 0.95
   max_treedepth: 12
-  # Weakly informative half-normal prior sd on media effects, and normal
-  # prior sd on control effects -- NOT derived from ground_truth.yml.
-  media_effect_prior_sd: 1.0
+  # Weakly informative half-normal prior sd on media effects (scale: share
+  # of average weekly revenue at full saturation), and normal prior sd on
+  # control effects -- NOT derived from ground_truth.yml, just the generic
+  # business judgement that no single channel plausibly explains most of
+  # weekly revenue on its own.
+  media_effect_prior_sd: 0.04
   control_effect_prior_sd: 2.0
 
 # Budget optimiser (08_decision_tools.R)
