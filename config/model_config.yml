@@ -1,0 +1,80 @@
+# =============================================================================
+# MODEL CONFIGURATION -- hyperparameter search space, CV design, and MCMC
+# settings for the modelling scripts (04a onwards). This file is read BY
+# modelling scripts; unlike config/ground_truth.yml, there is nothing secret
+# in here -- it's just tuning configuration, not the answer key.
+#
+# Set the MMM_QUICK=1 environment variable (or `make quick`) to use the
+# reduced "quick" settings for a fast smoke run.
+# =============================================================================
+
+seed: 42
+
+holdout:
+  final_holdout_weeks: 26   # untouched by any tuning; reserved for scripts/05_validation.R
+
+media_channels:
+  - tv_linear
+  - online_video
+  - social_prospecting
+  - social_retargeting
+  - search_brand
+  - search_nonbrand
+  - programmatic_display
+  - ooh
+  - leaflets
+
+# Rolling-origin CV design used for BOTH the transform hyperparameter search
+# (04a) and reported CV metrics (05_validation.R)
+cv:
+  full:
+    initial_window_weeks: 91    # ~1.75 years to start
+    step_weeks: 13              # expand by one quarter each fold
+    horizon_weeks: 13           # forecast one quarter ahead per fold
+  quick:
+    initial_window_weeks: 91
+    step_weeks: 26
+    horizon_weeks: 13
+
+# Transform hyperparameter search space (random search over these ranges,
+# per channel). ec is searched as a QUANTILE of that channel's adstocked
+# spend distribution (scale-invariant, easier to search than a raw DKK ec).
+transform_search:
+  decay_range: [0.0, 0.85]
+  ec_quantile_range: [0.15, 0.85]
+  shape_range: [0.7, 3.0]
+  full:
+    n_draws: 250
+  quick:
+    n_draws: 25
+
+# glmnet elastic net settings for the regularised MMM (04a)
+glmnet:
+  alpha: 0.15          # elastic net blend (0 = ridge, 1 = lasso) -- mostly ridge,
+                        # a little L1: with highly collinear media channels a
+                        # high alpha tends to zero out real, smaller-effect
+                        # channels rather than spreading credit sensibly
+  n_lambda: 100
+  final_cv_folds: 5    # for picking the final lambda on the chosen transform
+
+# brms / cmdstanr settings for the Bayesian MMM (04b)
+bayesian:
+  full:
+    chains: 4
+    iter_warmup: 1000
+    iter_sampling: 1000
+  quick:
+    chains: 2
+    iter_warmup: 200
+    iter_sampling: 200
+  adapt_delta: 0.95
+  max_treedepth: 12
+  # Weakly informative half-normal prior sd on media effects, and normal
+  # prior sd on control effects -- NOT derived from ground_truth.yml.
+  media_effect_prior_sd: 1.0
+  control_effect_prior_sd: 2.0
+
+# Budget optimiser (08_decision_tools.R)
+optimiser:
+  bound_pct: 0.4              # +/- 40% per-channel bound around current spend
+  contractual_minimum_pct: 0.5  # a channel can never go below 50% of current spend (contract minimum, illustrative)

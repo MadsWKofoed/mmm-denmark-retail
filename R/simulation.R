@@ -158,7 +158,14 @@ simulate_channel_spend <- function(channel_name, ch_cfg, calendar, drivers, sear
     },
     "always_on" = rep(mean_spend, n),
     "weekly_with_seasonal_peaks" = mean_spend * (0.7 + 0.6 * drivers$garden_peak + 0.5 * (calendar$iso_week %in% c(47, 48, 50, 51))),
-    "follows_seasonal_demand" = mean_spend * (0.6 + 0.8 * drivers$garden_peak + 0.6 * (calendar$iso_week %in% c(47, 48, 50, 51))) * drivers$seasonal_multiplier / mean(drivers$seasonal_multiplier),
+    # Dampened (^0.35) coupling to revenue's own seasonal shape, plus extra
+    # idiosyncratic noise: real search spend tracks category seasonality but
+    # is not mechanically proportional to the client's own revenue curve --
+    # a too-tight coupling here would make the channel's spend a near-perfect
+    # proxy for revenue itself, an unrealistically strong (and statistically
+    # degenerate) form of endogeneity.
+    "follows_seasonal_demand" = mean_spend * (0.6 + 0.8 * drivers$garden_peak + 0.6 * (calendar$iso_week %in% c(47, 48, 50, 51))) *
+      (drivers$seasonal_multiplier / mean(drivers$seasonal_multiplier))^0.18 * exp(rnorm(n, 0, 0.30)),
     "follows_traffic" = mean_spend * rep(1, n),  # filled in later using site-traffic proxy
     "follows_brand_demand" = mean_spend * rep(1, n),  # filled in later using lagged TV
     rep(mean_spend, n)
@@ -195,11 +202,14 @@ simulate_ground_truth <- function(cfg, weather_weekly, consumer_confidence, cpi_
   spend[["search_brand"]] <- pmax(0, cfg$media_channels$search_brand$mean_weekly_spend_dkk *
                                      (0.35 + 0.9 * brand_demand_signal) * exp(rnorm(n, 0, 0.10)))
 
-  # Retargeting spend follows a site-traffic proxy (driven by overall demand level)
+  # Retargeting spend follows a site-traffic proxy (driven by overall demand
+  # level), dampened (^0.35) and with more idiosyncratic noise for the same
+  # reason as search_nonbrand above -- real retargeting budgets lag and cap
+  # against site traffic, they don't track it (and hence revenue) mechanically.
   demand_proxy <- drivers$seasonal_multiplier * drivers$trend_index
   demand_proxy <- demand_proxy / mean(demand_proxy)
   spend[["social_retargeting"]] <- pmax(0, cfg$media_channels$social_retargeting$mean_weekly_spend_dkk *
-                                           (0.5 + 0.7 * demand_proxy) * exp(rnorm(n, 0, 0.10)))
+                                           (0.55 + 0.45 * demand_proxy^0.5) * exp(rnorm(n, 0, 0.18)))
 
   media_spend <- tibble::as_tibble(spend)
   media_spend$week_start <- calendar$week_start
