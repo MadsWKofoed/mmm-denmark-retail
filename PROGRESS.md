@@ -97,6 +97,11 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 ## Phase 8 — Refresh backtest, tests, polish
 - [ ] Not started
 
+## Phase 9 (agile refresh backtest) — DONE
+- [x] `scripts/09_refresh_backtest.R`: 12 monthly expanding-window refits (ridge MMM, reduced 60-draw search for speed) over the last year, tracking ROAS stability and 4-week-ahead forecast error.
+- Mean next-period MAPE: 10.5%.
+- **Striking, honest confirmation of the project's central finding:** ROAS coefficient of variation across refreshes is low and stable for well-identified channels (TV 0.61, leaflets 0.25, programmatic ~0) but extremely volatile for the confounded ones -- social_retargeting swings from near-zero to 115x ROAS refresh-to-refresh (CV not even the full story; see `results/figures/09_roas_stability.png`), search_nonbrand similarly spiky. This is exactly the kind of instability a real always-on MMM operation should treat as a red flag for a channel's estimate, not noise to average away.
+
 ## Known issues / decisions log
 - Quarto CLI installed without admin rights (tarball to `~/opt`, symlinked in `~/.local/bin`). If this machine's PATH doesn't pick it up in a new shell, run `export PATH="$HOME/.local/bin:$PATH"`.
 - gfortran likewise needed a no-sudo workaround: `brew install gfortran` (formula) + `~/.R/Makevars` setting FC/F77, since R expects it at `/opt/gfortran` which requires root to create.
