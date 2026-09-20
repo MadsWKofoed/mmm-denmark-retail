@@ -102,6 +102,15 @@ Tracks what has been built, what works, and what is still outstanding. Updated a
 - Mean next-period MAPE: 10.5%.
 - **Striking, honest confirmation of the project's central finding:** ROAS coefficient of variation across refreshes is low and stable for well-identified channels (TV 0.61, leaflets 0.25, programmatic ~0) but extremely volatile for the confounded ones -- social_retargeting swings from near-zero to 115x ROAS refresh-to-refresh (CV not even the full story; see `results/figures/09_roas_stability.png`), search_nonbrand similarly spiky. This is exactly the kind of instability a real always-on MMM operation should treat as a red flag for a channel's estimate, not noise to average away.
 
+## Phase 7 deliverables — DONE
+- [x] README.md rewritten with real results (no hand-typed numbers not traceable to `results/tables/`).
+- [x] `scripts/10_build_excel_workbook.R`: 9-sheet workbook (ROAS summary, decomposition, response curves, recovery vs. truth, budget allocation, scenarios, holdout accuracy, geo experiment, geo calibration) -- `results/havehjornet_mmm_results.xlsx`.
+- [x] `reports/deck.qmd`: renders cleanly to `reports/deck.pptx` (21 slides incl. appendix) via `quarto render`, every number pulled from `results/tables/` at render time, not hand-typed. Fixed a `knitr::kable` column-count bug after adding the `low_confidence_estimate` column to the allocation table.
+- [x] `app/app.R` (Shiny, bslib): all 4 tabs verified working via `shinytest2` headless Chrome (the `claude-in-chrome` browser extension wasn't connected in this environment, so used `shinytest2::AppDriver` instead) -- screenshots in `docs/screenshots/`.
+- [x] docs/: client_brief.md, data_request.md, methodology.md, assumptions_and_limitations.md, interview_qa.md (all written from real results, not templated placeholders).
+- [x] Final lintr/styler pass: `styler::style_dir()` across R/, scripts/, tests/ (reformatting only, re-verified with tests + a script re-run); `.lintr` config added; 51 remaining lints, all cosmetic (line length on descriptive log strings, pipe style) -- no correctness linters flagged.
+- [x] testthat suite: 8 files, all passing. The Shiny-app-smoke test self-skips under `testthat::test_dir()` (shinytest2's internal CRAN/CI detection), which is why the app was verified manually via `shinytest2::AppDriver` with `NOT_CRAN=true` instead (see screenshots) -- the automated test still exists and will run under `R CMD check`-style invocations.
+
 ## Known issues / decisions log
 - Quarto CLI installed without admin rights (tarball to `~/opt`, symlinked in `~/.local/bin`). If this machine's PATH doesn't pick it up in a new shell, run `export PATH="$HOME/.local/bin:$PATH"`.
 - gfortran likewise needed a no-sudo workaround: `brew install gfortran` (formula) + `~/.R/Makevars` setting FC/F77, since R expects it at `/opt/gfortran` which requires root to create.

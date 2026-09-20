@@ -35,7 +35,7 @@ test_that("match_taxonomy resolves overlapping substrings via row order (NonBran
 
 test_that("validate_weekly_table catches missing weeks", {
   df <- tibble::tibble(
-    week_start = as.Date(c("2022-01-03", "2022-01-17")),  # missing 2022-01-10
+    week_start = as.Date(c("2022-01-03", "2022-01-17")), # missing 2022-01-10
     revenue_dkk = c(1000, 1000),
     spend_tv = c(10, 10)
   )

@@ -124,12 +124,17 @@ if (!is.null(calibration)) {
 
 ```{r allocation-slide}
 if (!is.null(allocation)) {
-  allocation |> mutate(across(where(is.numeric), ~ round(.x, 0))) |>
+  allocation |> select(channel, current_spend_dkk, optimal_spend_dkk, change_pct) |>
+    mutate(across(where(is.numeric), ~ round(.x, 0))) |>
     knitr::kable(col.names = c("Channel", "Current spend (DKK/wk)", "Recommended spend (DKK/wk)", "Change (%)"))
 } else {
   cat("Budget allocation not yet available -- see results/tables/08_budget_allocation.csv")
 }
 ```
+
+**Caveat:** the recommended increases for search_brand and social_retargeting rely on posterior
+ROAS estimates still inflated by known, uncorrected endogeneity (see the previous two slides) --
+discount or exclude those two pending further identification work.
 
 ```{r uplift-slide}
 if (!is.null(optimiser_summary)) {

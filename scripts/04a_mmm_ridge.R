@@ -47,15 +47,19 @@ holdout_n <- mcfg$holdout$final_holdout_weeks
 n_total <- nrow(wt)
 wt_train <- wt[seq_len(n_total - holdout_n), ]
 wt_holdout <- wt[seq(n_total - holdout_n + 1, n_total), ]
-log_msg("Training weeks: %d, final untouched holdout weeks: %d (%s to %s)",
-    nrow(wt_train), nrow(wt_holdout), min(wt_holdout$week_start), max(wt_holdout$week_start))
+log_msg(
+  "Training weeks: %d, final untouched holdout weeks: %d (%s to %s)",
+  nrow(wt_train), nrow(wt_holdout), min(wt_holdout$week_start), max(wt_holdout$week_start)
+)
 
 # -----------------------------------------------------------------------------
 # Random search over adstock/saturation transforms, scored by rolling-origin
 # CV RMSE within the training period only.
 # -----------------------------------------------------------------------------
-log_msg("Running random search: %d draws over %d-dim transform space (rolling-origin CV, %s window/%s step/%s horizon weeks)...",
-    n_draws, length(channels) * 3, cv_cfg$initial_window_weeks, cv_cfg$step_weeks, cv_cfg$horizon_weeks)
+log_msg(
+  "Running random search: %d draws over %d-dim transform space (rolling-origin CV, %s window/%s step/%s horizon weeks)...",
+  n_draws, length(channels) * 3, cv_cfg$initial_window_weeks, cv_cfg$step_weeks, cv_cfg$horizon_weeks
+)
 
 t0 <- Sys.time()
 search_result <- random_search_transforms(
@@ -66,8 +70,10 @@ log_msg("Search done in %.1fs, %d CV folds per draw.", as.numeric(Sys.time() - t
 
 best <- search_result$summary |> slice(1)
 best_draw <- search_result$draws[[which(search_result$summary$draw_seed[1] == vapply(search_result$draws, `[[`, numeric(1), "seed"))]]$draw
-log_msg("Best draw: seed=%d, CV RMSE=%.0f DKK (vs worst draw in search: %.0f DKK)",
-    best$draw_seed, best$cv_rmse, max(search_result$summary$cv_rmse, na.rm = TRUE))
+log_msg(
+  "Best draw: seed=%d, CV RMSE=%.0f DKK (vs worst draw in search: %.0f DKK)",
+  best$draw_seed, best$cv_rmse, max(search_result$summary$cv_rmse, na.rm = TRUE)
+)
 
 search_summary_out <- search_result$summary
 write_csv(search_summary_out, here("results", "tables", "04a_transform_search_results.csv"))
@@ -91,10 +97,14 @@ lower <- c(rep(0, length(channels)), rep(-Inf, length(mmm_control_cols())))
 
 log_msg("Fitting final elastic net (alpha=%.2f) with CV-selected lambda...", mcfg$glmnet$alpha)
 set.seed(mcfg$seed)
-cvfit <- cv.glmnet(d_train$X, d_train$y, alpha = mcfg$glmnet$alpha, lower.limits = lower,
-                    nfolds = mcfg$glmnet$final_cv_folds, standardize = TRUE)
-final_fit <- glmnet(d_train$X, d_train$y, alpha = mcfg$glmnet$alpha, lower.limits = lower,
-                     lambda = cvfit$lambda.1se, standardize = TRUE)
+cvfit <- cv.glmnet(d_train$X, d_train$y,
+  alpha = mcfg$glmnet$alpha, lower.limits = lower,
+  nfolds = mcfg$glmnet$final_cv_folds, standardize = TRUE
+)
+final_fit <- glmnet(d_train$X, d_train$y,
+  alpha = mcfg$glmnet$alpha, lower.limits = lower,
+  lambda = cvfit$lambda.1se, standardize = TRUE
+)
 
 pred_train <- as.numeric(predict(final_fit, newx = d_train$X))
 train_r2 <- 1 - sum((d_train$y - pred_train)^2) / sum((d_train$y - mean(d_train$y))^2)
@@ -114,8 +124,10 @@ colnames(contributions) <- channels
 roas_table <- map_dfr(channels, function(ch) {
   spend <- sum(wt_train[[paste0("spend_", ch)]])
   contrib <- sum(contributions[, ch])
-  tibble(channel = ch, total_spend_dkk = spend, total_contribution_dkk = contrib,
-         roas = contrib / spend, coefficient = media_coefs$coefficient[media_coefs$channel == ch])
+  tibble(
+    channel = ch, total_spend_dkk = spend, total_contribution_dkk = contrib,
+    roas = contrib / spend, coefficient = media_coefs$coefficient[media_coefs$channel == ch]
+  )
 }) |> arrange(desc(roas))
 write_csv(roas_table, here("results", "tables", "04a_channel_roas.csv"))
 log_msg("Ridge/elastic-net MMM: estimated ROAS by channel (training period):")
@@ -154,7 +166,7 @@ response_curves <- map_dfr(channels, function(ch) {
   p <- final_params[[ch]]
   max_spend <- max(wt_train[[paste0("spend_", ch)]]) * 2.5
   spend_grid <- seq(0, max_spend, length.out = 100)
-  sat <- hill_saturation(spend_grid, ec = p$ec, shape = p$shape)  # response to a single-week spend level (no adstock, illustrative)
+  sat <- hill_saturation(spend_grid, ec = p$ec, shape = p$shape) # response to a single-week spend level (no adstock, illustrative)
   coef_val <- media_coefs$coefficient[media_coefs$channel == ch]
   tibble(channel = ch, spend_dkk = spend_grid, predicted_contribution_dkk = sat * coef_val)
 })
@@ -165,8 +177,10 @@ p_response <- ggplot(response_curves, aes(spend_dkk, predicted_contribution_dkk)
   facet_wrap(~channel, scales = "free", ncol = 3) +
   scale_x_continuous(labels = scales::label_number(scale = 1e-3, suffix = "K")) +
   scale_y_continuous(labels = scales::label_number(scale = 1e-3, suffix = "K")) +
-  labs(title = "Estimated response curves (diminishing returns)", subtitle = "Single-week spend -> contribution, at the fitted saturation curve",
-       x = "Weekly spend (DKK)", y = "Contribution (DKK)") +
+  labs(
+    title = "Estimated response curves (diminishing returns)", subtitle = "Single-week spend -> contribution, at the fitted saturation curve",
+    x = "Weekly spend (DKK)", y = "Contribution (DKK)"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "04a_response_curves.png"), p_response, width = 11, height = 8, dpi = 130)
 
@@ -174,8 +188,10 @@ p_roas <- ggplot(roas_table, aes(reorder(channel, roas), roas)) +
   geom_col(fill = mmm_pal("primary")) +
   geom_hline(yintercept = 1, linetype = "dashed", color = mmm_pal("ink_secondary")) +
   coord_flip() +
-  labs(title = "Ridge/elastic-net MMM: estimated ROAS by channel", subtitle = "Training period; dashed line = breakeven (ROAS = 1)",
-       x = NULL, y = "Estimated ROAS") +
+  labs(
+    title = "Ridge/elastic-net MMM: estimated ROAS by channel", subtitle = "Training period; dashed line = breakeven (ROAS = 1)",
+    x = NULL, y = "Estimated ROAS"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "04a_roas_by_channel.png"), p_roas, width = 8, height = 5, dpi = 130)
 

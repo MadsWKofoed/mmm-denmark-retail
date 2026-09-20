@@ -48,8 +48,10 @@ build_bayes_formula_priors <- function(media_cols, control_cols, bcfg, prior_ove
   baseline_formula <- stats::as.formula(paste0("baseline ~ 1 + ", paste(control_cols, collapse = " + ")))
   # AR(1) errors: brms >=2.20 wants autocor as its own bf() argument (a
   # one-sided formula calling ar()), not appended inside the main formula.
-  bf_obj <- do.call(brms::bf, c(list(main_formula), media_nlpar_formulas, list(baseline_formula),
-                                 list(nl = TRUE, autocor = ~ brms::ar(time = t, p = 1))))
+  bf_obj <- do.call(brms::bf, c(
+    list(main_formula), media_nlpar_formulas, list(baseline_formula),
+    list(nl = TRUE, autocor = ~ brms::ar(time = t, p = 1))
+  ))
 
   # Half-normal (via lb=0) on each media nlpar -- weakly informative, NOT
   # derived from ground truth: just the generic business judgement that a

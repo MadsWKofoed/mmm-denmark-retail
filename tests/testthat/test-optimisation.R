@@ -14,17 +14,21 @@ make_test_setup <- function() {
 
 test_that("optimise_budget respects the total budget constraint", {
   s <- make_test_setup()
-  res <- optimise_budget(s$current_spend, total_budget = sum(s$current_spend), params = s$params,
-                          beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
-                          bound_pct = 0.4, contractual_minimum_pct = 0.5)
+  res <- optimise_budget(s$current_spend,
+    total_budget = sum(s$current_spend), params = s$params,
+    beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
+    bound_pct = 0.4, contractual_minimum_pct = 0.5
+  )
   expect_equal(sum(res$optimal_spend), sum(s$current_spend), tolerance = 1e-3)
 })
 
 test_that("optimise_budget respects per-channel bounds", {
   s <- make_test_setup()
-  res <- optimise_budget(s$current_spend, total_budget = sum(s$current_spend), params = s$params,
-                          beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
-                          bound_pct = 0.4, contractual_minimum_pct = 0.5)
+  res <- optimise_budget(s$current_spend,
+    total_budget = sum(s$current_spend), params = s$params,
+    beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
+    bound_pct = 0.4, contractual_minimum_pct = 0.5
+  )
   lower <- pmax(s$current_spend * 0.6, s$current_spend * 0.5)
   upper <- s$current_spend * 1.4
   expect_true(all(res$optimal_spend >= lower - 1e-6))
@@ -34,9 +38,11 @@ test_that("optimise_budget respects per-channel bounds", {
 test_that("optimise_budget honours a different total budget", {
   s <- make_test_setup()
   new_budget <- sum(s$current_spend) * 1.1
-  res <- optimise_budget(s$current_spend, total_budget = new_budget, params = s$params,
-                          beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
-                          bound_pct = 0.4, contractual_minimum_pct = 0.5)
+  res <- optimise_budget(s$current_spend,
+    total_budget = new_budget, params = s$params,
+    beta_draws_mat = s$beta_draws_mat, mean_revenue = s$mean_revenue,
+    bound_pct = 0.4, contractual_minimum_pct = 0.5
+  )
   expect_equal(sum(res$optimal_spend), new_budget, tolerance = 1e-3)
 })
 

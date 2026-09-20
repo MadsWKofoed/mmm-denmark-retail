@@ -20,10 +20,12 @@ add_time_features <- function(wt) {
 #' The fixed set of non-media control columns used by every MMM in this
 #' project (must exist in the weekly table after add_time_features()).
 mmm_control_cols <- function() {
-  c("t", "fourier_sin1", "fourier_cos1", "fourier_sin2", "fourier_cos2",
+  c(
+    "t", "fourier_sin1", "fourier_cos1", "fourier_sin2", "fourier_cos2",
     "promo_depth_pct", "temperature_c", "precipitation_mm", "consumer_confidence",
     "cpi_index", "n_stores", "is_easter_week", "is_ascension_week",
-    "is_whitmonday_week", "is_great_prayer_week", "is_christmas_week")
+    "is_whitmonday_week", "is_great_prayer_week", "is_christmas_week"
+  )
 }
 
 #' Transform every media channel's raw weekly spend into a saturated-adstock

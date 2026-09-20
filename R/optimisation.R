@@ -51,7 +51,7 @@ evaluate_allocation <- function(spend_vec, params, beta_draws_mat, mean_revenue)
 #' @param params,beta_draws_mat,mean_revenue As in evaluate_allocation().
 #' @param bound_pct,contractual_minimum_pct From config$optimiser.
 optimise_budget <- function(current_spend, total_budget = sum(current_spend), params, beta_draws_mat,
-                             mean_revenue, bound_pct = 0.4, contractual_minimum_pct = 0.5) {
+                            mean_revenue, bound_pct = 0.4, contractual_minimum_pct = 0.5) {
   channels <- names(current_spend)
   n <- length(channels)
   beta_mean <- colMeans(beta_draws_mat)[channels]
@@ -69,8 +69,10 @@ optimise_budget <- function(current_spend, total_budget = sum(current_spend), pa
   scale <- total_budget / sum(current_spend)
   x0 <- pmin(pmax(current_spend * scale, lower), upper)
 
-  res <- nloptr::slsqp(x0 = x0, fn = objective, lower = lower, upper = upper, heq = eq_constraint,
-                        control = list(xtol_rel = 1e-8, maxeval = 2000))
+  res <- nloptr::slsqp(
+    x0 = x0, fn = objective, lower = lower, upper = upper, heq = eq_constraint,
+    control = list(xtol_rel = 1e-8, maxeval = 2000)
+  )
 
   optimal_spend <- stats::setNames(res$par, channels)
   list(optimal_spend = optimal_spend, converged = res$convergence >= 0, message = res$message)
@@ -83,7 +85,8 @@ compare_allocations <- function(new_spend, baseline_spend, params, beta_draws_ma
   new_eval <- evaluate_allocation(new_spend, params, beta_draws_mat, mean_revenue)
   base_eval <- evaluate_allocation(baseline_spend, params, beta_draws_mat, mean_revenue)
   uplift_draws <- new_eval$draws - base_eval$draws
-  lower <- (1 - prob) / 2; upper <- 1 - lower
+  lower <- (1 - prob) / 2
+  upper <- 1 - lower
   list(
     expected_uplift_dkk = mean(uplift_draws),
     uplift_lower = stats::quantile(uplift_draws, lower),

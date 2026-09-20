@@ -43,14 +43,14 @@ n_total <- nrow(wt)
 # forecasts the following 4 weeks (roughly "next month").
 n_refreshes <- if (quick) 3 else 12
 step_weeks <- 4
-last_refresh_end <- n_total - step_weeks  # last refresh must leave room to forecast
+last_refresh_end <- n_total - step_weeks # last refresh must leave room to forecast
 refresh_ends <- round(seq(last_refresh_end - (n_refreshes - 1) * step_weeks, last_refresh_end, by = step_weeks))
-refresh_ends <- refresh_ends[refresh_ends > 100]  # need enough history to fit at all
+refresh_ends <- refresh_ends[refresh_ends > 100] # need enough history to fit at all
 
 log_msg("Running %d monthly expanding-window refreshes (forecasting %d weeks ahead each time)...", length(refresh_ends), step_weeks)
 
-n_draws_refresh <- if (quick) 15 else 60  # smaller than 04a's full search -- this runs many times
-cv_cfg <- mcfg$cv$quick  # keep each refresh's own internal CV light; this script's expense is in the NUMBER of refreshes, not each one's depth
+n_draws_refresh <- if (quick) 15 else 60 # smaller than 04a's full search -- this runs many times
+cv_cfg <- mcfg$cv$quick # keep each refresh's own internal CV light; this script's expense is in the NUMBER of refreshes, not each one's depth
 
 refresh_results <- map_dfr(seq_along(refresh_ends), function(i) {
   end_idx <- refresh_ends[i]
@@ -58,15 +58,19 @@ refresh_results <- map_dfr(seq_along(refresh_ends), function(i) {
   wt_next <- wt[seq(end_idx + 1, min(end_idx + step_weeks, n_total)), ]
 
   search <- random_search_transforms(wt_upto, channels, cv_cfg, mcfg$transform_search, n_draws_refresh,
-                                      alpha = mcfg$glmnet$alpha, n_lambda = 50, base_seed = mcfg$seed + i * 1000)
+    alpha = mcfg$glmnet$alpha, n_lambda = 50, base_seed = mcfg$seed + i * 1000
+  )
   best_draw <- search$draws[[which.min(sapply(search$draws, `[[`, "score"))]]$draw
   params <- resolve_draw(best_draw, wt_upto, channels)
 
   d_fit <- build_design(wt_upto, channels, params)
   lower <- c(rep(0, length(channels)), rep(-Inf, length(mmm_control_cols())))
   cvfit <- tryCatch(cv.glmnet(d_fit$X, d_fit$y, alpha = mcfg$glmnet$alpha, lower.limits = lower, nfolds = 5, standardize = TRUE),
-                     error = function(e) NULL)
-  if (is.null(cvfit)) return(NULL)
+    error = function(e) NULL
+  )
+  if (is.null(cvfit)) {
+    return(NULL)
+  }
   fit <- glmnet(d_fit$X, d_fit$y, alpha = mcfg$glmnet$alpha, lower.limits = lower, lambda = cvfit$lambda.1se, standardize = TRUE)
 
   coefs <- as.matrix(coef(fit))[channels, 1]
@@ -110,9 +114,11 @@ p_stability <- ggplot(roas_long, aes(refresh_date, roas, color = channel)) +
   geom_line(linewidth = 0.7) +
   geom_point(size = 1.5) +
   mmm_channel_scale_color() +
-  labs(title = "Agile refresh backtest: ROAS stability across monthly refits",
-       subtitle = "Expanding window, ridge/elastic-net MMM refit each period",
-       x = NULL, y = "Estimated ROAS") +
+  labs(
+    title = "Agile refresh backtest: ROAS stability across monthly refits",
+    subtitle = "Expanding window, ridge/elastic-net MMM refit each period",
+    x = NULL, y = "Estimated ROAS"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "09_roas_stability.png"), p_stability, width = 10, height = 6, dpi = 130)
 
@@ -122,9 +128,14 @@ p_forecast_err <- ggplot(refresh_results, aes(refresh_date, next_period_mape_pct
   mmm_theme()
 ggsave(here("results", "figures", "09_forecast_error_over_time.png"), p_forecast_err, width = 9, height = 5, dpi = 130)
 
-log_msg("Refresh backtest summary: mean next-period MAPE=%.1f%%, ROAS coefficient of variation by channel:",
-    mean(refresh_results$next_period_mape_pct, na.rm = TRUE))
-cv_by_channel <- roas_long |> group_by(channel) |> summarise(mean_roas = mean(roas), cv = sd(roas) / mean(roas), .groups = "drop") |> arrange(desc(cv))
+log_msg(
+  "Refresh backtest summary: mean next-period MAPE=%.1f%%, ROAS coefficient of variation by channel:",
+  mean(refresh_results$next_period_mape_pct, na.rm = TRUE)
+)
+cv_by_channel <- roas_long |>
+  group_by(channel) |>
+  summarise(mean_roas = mean(roas), cv = sd(roas) / mean(roas), .groups = "drop") |>
+  arrange(desc(cv))
 write_csv(cv_by_channel, here("results", "tables", "09_roas_stability_summary.csv"))
 print(cv_by_channel)
 

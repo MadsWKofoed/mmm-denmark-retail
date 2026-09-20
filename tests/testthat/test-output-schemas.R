@@ -11,9 +11,11 @@ test_that("weekly modelling table has the expected schema", {
   path <- here::here("data", "processed", "weekly_modelling_table.rds")
   skip_if_not(file.exists(path), "weekly_modelling_table.rds not built yet")
   wt <- readRDS(path)
-  expect_has_columns(wt, c("week_start", "iso_year", "iso_week", "revenue_dkk",
-                            "promo_depth_pct", "temperature_c", "precipitation_mm",
-                            "consumer_confidence", "cpi_index", "n_stores"))
+  expect_has_columns(wt, c(
+    "week_start", "iso_year", "iso_week", "revenue_dkk",
+    "promo_depth_pct", "temperature_c", "precipitation_mm",
+    "consumer_confidence", "cpi_index", "n_stores"
+  ))
   expect_true(all(!is.na(wt$revenue_dkk)))
   expect_true(all(wt$revenue_dkk > 0))
   expect_equal(anyDuplicated(wt$week_start), 0)

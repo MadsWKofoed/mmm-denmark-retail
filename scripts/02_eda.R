@@ -14,9 +14,9 @@
 
 library(tidyverse)
 library(here)
-library(car)     # vif()
+library(car) # vif()
 library(tseries) # adf.test
-library(urca)    # ur.kpss
+library(urca) # ur.kpss
 library(patchwork)
 library(scales)
 
@@ -63,7 +63,9 @@ ggsave(here("results", "figures", "02_spend_by_channel.png"), p_spend_small_mult
 # 3. Correlation matrix of media spend (the TV/OOH/video collinearity trap)
 # -----------------------------------------------------------------------------
 log_msg("Computing spend correlation matrix...")
-spend_matrix <- wt |> select(all_of(spend_cols)) |> rename_with(~ str_remove(.x, "spend_"))
+spend_matrix <- wt |>
+  select(all_of(spend_cols)) |>
+  rename_with(~ str_remove(.x, "spend_"))
 cor_mat <- cor(spend_matrix)
 write_csv(as_tibble(cor_mat, rownames = "channel"), here("results", "tables", "02_spend_correlation_matrix.csv"))
 
@@ -81,7 +83,9 @@ p_cor <- ggplot(cor_long, aes(channel_1, channel_2, fill = correlation)) +
 ggsave(here("results", "figures", "02_spend_correlation.png"), p_cor, width = 8, height = 7, dpi = 130)
 
 log_msg("Top spend correlations (|r| > 0.3, excluding diagonal):")
-top_cor <- cor_long |> filter(channel_1 < channel_2, abs(correlation) > 0.3) |> arrange(desc(abs(correlation)))
+top_cor <- cor_long |>
+  filter(channel_1 < channel_2, abs(correlation) > 0.3) |>
+  arrange(desc(abs(correlation)))
 print(top_cor)
 
 # -----------------------------------------------------------------------------
@@ -146,13 +150,17 @@ write_csv(platform_roas, here("results", "tables", "02_platform_reported_roas.cs
 log_msg("Platform-reported ROAS by channel (NA = no last-click attribution available, e.g. TV/OOH/print):")
 print(platform_roas)
 
-p_roas <- ggplot(platform_roas |> filter(!is.na(platform_reported_roas)),
-                  aes(reorder(channel, platform_reported_roas), platform_reported_roas)) +
+p_roas <- ggplot(
+  platform_roas |> filter(!is.na(platform_reported_roas)),
+  aes(reorder(channel, platform_reported_roas), platform_reported_roas)
+) +
   geom_col(fill = mmm_pal("primary")) +
   coord_flip() +
-  labs(title = "Platform-reported (last-click) ROAS by channel",
-       subtitle = "Before any MMM adjustment -- compare against Section 5's incrementality-calibrated estimates",
-       x = NULL, y = "Platform-reported ROAS") +
+  labs(
+    title = "Platform-reported (last-click) ROAS by channel",
+    subtitle = "Before any MMM adjustment -- compare against Section 5's incrementality-calibrated estimates",
+    x = NULL, y = "Platform-reported ROAS"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "02_platform_reported_roas.png"), p_roas, width = 8, height = 5, dpi = 130)
 

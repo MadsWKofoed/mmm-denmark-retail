@@ -37,11 +37,13 @@ channels <- ridge_model$channels
 # -----------------------------------------------------------------------------
 truth_table <- map_dfr(channels, function(ch) {
   cc <- truth_cfg$media_channels[[ch]]
-  tibble(channel = ch, true_roas = cc$target_short_run_roas,
-         true_decay = cc$adstock_decay, true_shape = cc$hill_shape,
-         true_ec_dkk = cc$hill_ec,
-         known_endogenous = !is.null(cc$endogenous_driver) || !is.null(cc$platform_reported_roas_inflation),
-         collinear_with = ifelse(is.null(cc$correlated_with), NA_character_, paste(cc$correlated_with, collapse = ",")))
+  tibble(
+    channel = ch, true_roas = cc$target_short_run_roas,
+    true_decay = cc$adstock_decay, true_shape = cc$hill_shape,
+    true_ec_dkk = cc$hill_ec,
+    known_endogenous = !is.null(cc$endogenous_driver) || !is.null(cc$platform_reported_roas_inflation),
+    collinear_with = ifelse(is.null(cc$correlated_with), NA_character_, paste(cc$correlated_with, collapse = ","))
+  )
 })
 
 # -----------------------------------------------------------------------------
@@ -62,10 +64,14 @@ write_csv(recovery, here("results", "tables", "05b_roas_recovery.csv"))
 log_msg("ROAS recovery vs ground truth:")
 print(recovery |> select(channel, true_roas, ridge_roas, bayes_roas, known_endogenous, bayes_true_covered_90pct_ci))
 
-log_msg("Bayesian model's 90%% credible interval contains the true ROAS for %d of %d channels.",
-    sum(recovery$bayes_true_covered_90pct_ci), nrow(recovery))
-log_msg("Bayesian estimate closer to truth than ridge point estimate for %d of %d channels.",
-    sum(recovery$bayes_improves_on_ridge), nrow(recovery))
+log_msg(
+  "Bayesian model's 90%% credible interval contains the true ROAS for %d of %d channels.",
+  sum(recovery$bayes_true_covered_90pct_ci), nrow(recovery)
+)
+log_msg(
+  "Bayesian estimate closer to truth than ridge point estimate for %d of %d channels.",
+  sum(recovery$bayes_improves_on_ridge), nrow(recovery)
+)
 
 # -----------------------------------------------------------------------------
 # Decay/shape recovery (ridge model's chosen transform only -- the Bayesian
@@ -73,9 +79,13 @@ log_msg("Bayesian estimate closer to truth than ridge point estimate for %d of %
 # there; this itself is a limitation worth stating plainly)
 # -----------------------------------------------------------------------------
 decay_recovery <- truth_table |>
-  left_join(map_dfr(channels, function(ch) tibble(channel = ch, estimated_decay = ridge_model$params[[ch]]$decay,
-                                                     estimated_shape = ridge_model$params[[ch]]$shape,
-                                                     estimated_ec_dkk = ridge_model$params[[ch]]$ec)), by = "channel") |>
+  left_join(map_dfr(channels, function(ch) {
+    tibble(
+      channel = ch, estimated_decay = ridge_model$params[[ch]]$decay,
+      estimated_shape = ridge_model$params[[ch]]$shape,
+      estimated_ec_dkk = ridge_model$params[[ch]]$ec
+    )
+  }), by = "channel") |>
   mutate(decay_error = estimated_decay - true_decay, shape_error = estimated_shape - true_shape)
 write_csv(decay_recovery, here("results", "tables", "05b_transform_recovery.csv"))
 log_msg("Adstock decay / Hill shape recovery (chosen by rolling-origin CV, never touching ground truth):")
@@ -93,8 +103,10 @@ failure_notes <- recovery |>
     channel == "leaflets" ~ "Large, genuinely important true driver with naturally seasonal execution -- high correlation with revenue here is mostly real signal, not confounding.",
     TRUE ~ "Reasonably well-identified: flighting pattern is close to independent of revenue's own seasonal shape."
   ))
-write_csv(failure_notes |> select(channel, ridge_abs_error, bayes_abs_error, known_endogenous, likely_reason),
-          here("results", "tables", "05b_failure_analysis.csv"))
+write_csv(
+  failure_notes |> select(channel, ridge_abs_error, bayes_abs_error, known_endogenous, likely_reason),
+  here("results", "tables", "05b_failure_analysis.csv")
+)
 
 # -----------------------------------------------------------------------------
 # Figure: true vs estimated ROAS, ridge and Bayesian
@@ -109,8 +121,10 @@ p_recovery <- ggplot(plot_df, aes(true_roas, estimated_roas, color = model)) +
   geom_point(size = 3, alpha = 0.85) +
   ggrepel::geom_text_repel(aes(label = channel), size = 2.8, show.legend = FALSE, max.overlaps = 20) +
   scale_color_manual(values = c(`Ridge/elastic-net` = mmm_pal("warning"), Bayesian = mmm_pal("primary")), name = NULL) +
-  labs(title = "ROAS recovery: estimated vs. true", subtitle = "Dashed line = perfect recovery. Points near the line are well-identified; points far above it are over-attributed.",
-       x = "True ROAS (ground truth)", y = "Estimated ROAS") +
+  labs(
+    title = "ROAS recovery: estimated vs. true", subtitle = "Dashed line = perfect recovery. Points near the line are well-identified; points far above it are over-attributed.",
+    x = "True ROAS (ground truth)", y = "Estimated ROAS"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "05b_roas_recovery.png"), p_recovery, width = 9, height = 6.5, dpi = 130)
 

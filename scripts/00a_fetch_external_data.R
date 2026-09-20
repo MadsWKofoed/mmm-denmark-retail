@@ -46,7 +46,9 @@ with_retries <- function(fn, tries = 2, label = "request") {
       last_err <<- conditionMessage(e)
       list(ok = FALSE, value = NULL)
     })
-    if (result$ok) return(result$value)
+    if (result$ok) {
+      return(result$value)
+    }
     log_msg("  attempt %d/%d for %s failed: %s", i, tries, label, last_err)
   }
   log_msg("  %s: all %d attempts failed, falling back to simulated data.", label, tries)
@@ -90,10 +92,14 @@ if (weather_is_real) {
   doy <- as.numeric(format(all_days, "%j"))
   seasonal_temp <- 8.5 + 8 * sin(2 * pi * (doy - 100) / 365)
   weather_daily <- bind_rows(
-    tibble(date = all_days, temperature_c = seasonal_temp + rnorm(length(all_days), 0, 3),
-           precipitation_mm = pmax(0, rgamma(length(all_days), shape = 0.9, scale = 2.2)), city = "Copenhagen"),
-    tibble(date = all_days, temperature_c = seasonal_temp - 0.4 + rnorm(length(all_days), 0, 3),
-           precipitation_mm = pmax(0, rgamma(length(all_days), shape = 0.9, scale = 2.4)), city = "Aarhus")
+    tibble(
+      date = all_days, temperature_c = seasonal_temp + rnorm(length(all_days), 0, 3),
+      precipitation_mm = pmax(0, rgamma(length(all_days), shape = 0.9, scale = 2.2)), city = "Copenhagen"
+    ),
+    tibble(
+      date = all_days, temperature_c = seasonal_temp - 0.4 + rnorm(length(all_days), 0, 3),
+      precipitation_mm = pmax(0, rgamma(length(all_days), shape = 0.9, scale = 2.4)), city = "Aarhus"
+    )
   )
 }
 
@@ -126,7 +132,7 @@ statbank_query <- function(table, variables) {
     req_timeout(30)
   resp <- req_perform(req)
   raw_txt <- resp_body_string(resp, encoding = "UTF-8")
-  raw_txt <- sub("^﻿", "", raw_txt)  # strip BOM
+  raw_txt <- sub("^﻿", "", raw_txt) # strip BOM
   readr::read_delim(I(raw_txt), delim = ";", locale = readr::locale(decimal_mark = ","), show_col_types = FALSE)
 }
 
@@ -176,12 +182,18 @@ write_csv(holidays, here("data", "external", "danish_holidays.csv"))
 metadata <- list(
   fetch_date = as.character(fetch_date),
   sources = list(
-    weather = list(source = "Open-Meteo archive API", is_real = weather_is_real,
-                    url = "https://archive-api.open-meteo.com/v1/archive"),
-    consumer_confidence = list(source = "Statistics Denmark StatBank, table FORV1", is_real = confidence_is_real,
-                                 url = "https://api.statbank.dk/v1/data"),
-    cpi = list(source = "Statistics Denmark StatBank, table PRIS01 (PRIS111 verified discontinued/inactive; PRIS01 is its active successor)",
-               is_real = cpi_is_real, url = "https://api.statbank.dk/v1/data"),
+    weather = list(
+      source = "Open-Meteo archive API", is_real = weather_is_real,
+      url = "https://archive-api.open-meteo.com/v1/archive"
+    ),
+    consumer_confidence = list(
+      source = "Statistics Denmark StatBank, table FORV1", is_real = confidence_is_real,
+      url = "https://api.statbank.dk/v1/data"
+    ),
+    cpi = list(
+      source = "Statistics Denmark StatBank, table PRIS01 (PRIS111 verified discontinued/inactive; PRIS01 is its active successor)",
+      is_real = cpi_is_real, url = "https://api.statbank.dk/v1/data"
+    ),
     holidays = list(source = "Computed locally (Gregorian Easter algorithm + fixed DK holiday calendar)", is_real = TRUE)
   )
 )

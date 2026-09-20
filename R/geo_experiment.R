@@ -19,21 +19,31 @@
 #' since), grouped by region, with a SIMULATED population weight for this
 #' experiment (not real population figures).
 danish_municipalities <- function(seed) {
-  hovedstaden <- c("Albertslund", "Alleroed", "Ballerup", "Bornholm", "Broendby", "Dragoer", "Egedal",
-                    "Fredensborg", "Frederiksberg", "Frederikssund", "Furesoe", "Gentofte", "Gladsaxe",
-                    "Glostrup", "Gribskov", "Halsnaes", "Helsingoer", "Herlev", "Hilleroed", "Hvidovre",
-                    "Hoeje-Taastrup", "Hoersholm", "Ishoej", "Koebenhavn", "Lyngby-Taarbaek", "Rudersdal",
-                    "Roedovre", "Taarnby", "Vallensbaek")
-  sjaelland <- c("Faxe", "Greve", "Guldborgsund", "Holbaek", "Kalundborg", "Koege", "Lejre", "Lolland",
-                 "Naestved", "Odsherred", "Ringsted", "Roskilde", "Slagelse", "Solroed", "Soroe", "Stevns", "Vordingborg")
-  syddanmark <- c("Assens", "Billund", "Esbjerg", "Fanoe", "Fredericia", "Faaborg-Midtfyn", "Haderslev",
-                  "Kerteminde", "Kolding", "Langeland", "Middelfart", "Nordfyns", "Nyborg", "Odense",
-                  "Svendborg", "Soenderborg", "Toender", "Varde", "Vejen", "Vejle", "Aeroe", "Aabenraa")
-  midtjylland <- c("Favrskov", "Hedensted", "Herning", "Holstebro", "Horsens", "Ikast-Brande", "Lemvig",
-                    "Norddjurs", "Odder", "Randers", "Ringkoebing-Skjern", "Samsoe", "Silkeborg",
-                    "Skanderborg", "Skive", "Struer", "Syddjurs", "Viborg", "Aarhus")
-  nordjylland <- c("Broenderslev", "Frederikshavn", "Hjoerring", "Jammerbugt", "Laesoe", "Mariagerfjord",
-                    "Morsoe", "Rebild", "Thisted", "Vesthimmerland", "Aalborg")
+  hovedstaden <- c(
+    "Albertslund", "Alleroed", "Ballerup", "Bornholm", "Broendby", "Dragoer", "Egedal",
+    "Fredensborg", "Frederiksberg", "Frederikssund", "Furesoe", "Gentofte", "Gladsaxe",
+    "Glostrup", "Gribskov", "Halsnaes", "Helsingoer", "Herlev", "Hilleroed", "Hvidovre",
+    "Hoeje-Taastrup", "Hoersholm", "Ishoej", "Koebenhavn", "Lyngby-Taarbaek", "Rudersdal",
+    "Roedovre", "Taarnby", "Vallensbaek"
+  )
+  sjaelland <- c(
+    "Faxe", "Greve", "Guldborgsund", "Holbaek", "Kalundborg", "Koege", "Lejre", "Lolland",
+    "Naestved", "Odsherred", "Ringsted", "Roskilde", "Slagelse", "Solroed", "Soroe", "Stevns", "Vordingborg"
+  )
+  syddanmark <- c(
+    "Assens", "Billund", "Esbjerg", "Fanoe", "Fredericia", "Faaborg-Midtfyn", "Haderslev",
+    "Kerteminde", "Kolding", "Langeland", "Middelfart", "Nordfyns", "Nyborg", "Odense",
+    "Svendborg", "Soenderborg", "Toender", "Varde", "Vejen", "Vejle", "Aeroe", "Aabenraa"
+  )
+  midtjylland <- c(
+    "Favrskov", "Hedensted", "Herning", "Holstebro", "Horsens", "Ikast-Brande", "Lemvig",
+    "Norddjurs", "Odder", "Randers", "Ringkoebing-Skjern", "Samsoe", "Silkeborg",
+    "Skanderborg", "Skive", "Struer", "Syddjurs", "Viborg", "Aarhus"
+  )
+  nordjylland <- c(
+    "Broenderslev", "Frederikshavn", "Hjoerring", "Jammerbugt", "Laesoe", "Mariagerfjord",
+    "Morsoe", "Rebild", "Thisted", "Vesthimmerland", "Aalborg"
+  )
 
   all_names <- c(hovedstaden, sjaelland, syddanmark, midtjylland, nordjylland)
   stopifnot(length(all_names) == 98)
@@ -42,9 +52,11 @@ danish_municipalities <- function(seed) {
   # A handful of genuinely large cities get an explicit population boost;
   # everything else draws from a lognormal distribution -- illustrative,
   # not real ONS/DST population figures.
-  big_cities <- c(Koebenhavn = 650000, Aarhus = 355000, Odense = 205000, Aalborg = 220000,
-                   Esbjerg = 115000, Randers = 100000, Kolding = 95000, Horsens = 92000,
-                   Vejle = 115000, Roskilde = 90000)
+  big_cities <- c(
+    Koebenhavn = 650000, Aarhus = 355000, Odense = 205000, Aalborg = 220000,
+    Esbjerg = 115000, Randers = 100000, Kolding = 95000, Horsens = 92000,
+    Vejle = 115000, Roskilde = 90000
+  )
   pop <- setNames(numeric(length(all_names)), all_names)
   pop[names(big_cities)] <- big_cities
   remaining <- setdiff(all_names, names(big_cities))
@@ -76,7 +88,7 @@ assign_treatment <- function(muni_df, seed) {
 #' @param noise_sd Idiosyncratic per-muni-week noise (per-capita revenue units).
 #' @param muni_fe_sd SD of municipality fixed effects (per-capita heterogeneity).
 simulate_geo_panel <- function(wt_truth, muni_df, pre_weeks, post_weeks, window_end_week_index,
-                                noise_sd = 0.015, muni_fe_sd = 0.05, seed) {
+                               noise_sd = 0.015, muni_fe_sd = 0.05, seed) {
   set.seed(seed)
   total_pop <- sum(muni_df$population)
   weeks_idx <- seq(window_end_week_index - pre_weeks + 1, window_end_week_index + post_weeks)
@@ -99,7 +111,7 @@ simulate_geo_panel <- function(wt_truth, muni_df, pre_weeks, post_weeks, window_
       tibble::tibble(
         municipality = m$municipality, population = m$population, treated = m$treated,
         week_index = w, week_start = row$week_start, is_post = is_post,
-        week_rel = w - pre_weeks - 1,  # -1 = last pre-period week (event-study reference)
+        week_rel = w - pre_weeks - 1, # -1 = last pre-period week (event-study reference)
         revenue_pc = revenue_pc
       )
     })

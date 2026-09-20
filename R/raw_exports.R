@@ -38,8 +38,10 @@ messy_campaign_name <- function(channel, tactic, week_start, n = 1) {
   )
   prefixes <- c("HH", "Havehjornet", "hh_dk", "HAVEHJ")
   sep <- sample(c("_", "-", " "), 1)
-  paste0(sample(prefixes, n, replace = TRUE), sep, channel, sep, tactic, sep, season_tag, sep,
-         format(week_start, "%Y%m"), ifelse(runif(n) < 0.1, paste0(sep, "kopi"), ""))
+  paste0(
+    sample(prefixes, n, replace = TRUE), sep, channel, sep, tactic, sep, season_tag, sep,
+    format(week_start, "%Y%m"), ifelse(runif(n) < 0.1, paste0(sep, "kopi"), "")
+  )
 }
 
 #' Randomly format a set of dates in one of several messy formats (as a
@@ -64,7 +66,7 @@ inject_row_gremlins <- function(df, dq) {
     drop_idx <- sample(seq_len(nrow(df)), min(n_drop, nrow(df) - 1))
     df <- df[-drop_idx, ]
   }
-  df[sample(seq_len(nrow(df))), ]  # shuffle row order, like a real export
+  df[sample(seq_len(nrow(df))), ] # shuffle row order, like a real export
 }
 
 #' Convert a random subset of rows to EUR (dividing by the fixed rate) and

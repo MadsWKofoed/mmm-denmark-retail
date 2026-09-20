@@ -14,9 +14,11 @@
 #' ~100x). Reading everything as character and parsing explicitly with
 #' parse_danish_number()/parse_messy_dates() avoids that trap entirely.
 read_raw_csv <- function(path) {
-  readr::read_delim(path, delim = ";", show_col_types = FALSE,
-                     col_types = readr::cols(.default = readr::col_character()),
-                     locale = readr::locale(encoding = "UTF-8"))
+  readr::read_delim(path,
+    delim = ";", show_col_types = FALSE,
+    col_types = readr::cols(.default = readr::col_character()),
+    locale = readr::locale(encoding = "UTF-8")
+  )
 }
 
 #' Parse a vector of dates that may be in several different formats
@@ -42,7 +44,7 @@ parse_messy_dates <- function(x) {
 parse_danish_number <- function(x) {
   x <- as.character(x)
   has_comma <- grepl(",", x, fixed = TRUE)
-  x[has_comma] <- gsub("\\.", "", x[has_comma])   # strip thousands separators
+  x[has_comma] <- gsub("\\.", "", x[has_comma]) # strip thousands separators
   x[has_comma] <- gsub(",", ".", x[has_comma], fixed = TRUE)
   suppressWarnings(as.numeric(x))
 }
@@ -74,8 +76,10 @@ validate_weekly_table <- function(df, expected_weeks) {
   all_weeks <- seq(min(df$week_start), max(df$week_start), by = "week")
   missing_weeks <- setdiff(as.character(all_weeks), as.character(df$week_start))
   if (length(missing_weeks) > 0) {
-    errors <- c(errors, sprintf("Missing %d week(s): %s", length(missing_weeks),
-                                 paste(head(missing_weeks, 5), collapse = ", ")))
+    errors <- c(errors, sprintf(
+      "Missing %d week(s): %s", length(missing_weeks),
+      paste(head(missing_weeks, 5), collapse = ", ")
+    ))
   }
 
   if (nrow(df) != expected_weeks) {
@@ -138,8 +142,10 @@ match_taxonomy <- function(campaign_names, platform, taxonomy) {
 reconcile_totals <- function(weekly_total, raw_total, tolerance = 0.01, label = "") {
   rel_diff <- abs(weekly_total - raw_total) / max(raw_total, 1)
   if (rel_diff > tolerance) {
-    stop(sprintf("Reconciliation FAILED for %s: weekly total %.0f vs raw total %.0f (%.2f%% diff)",
-                 label, weekly_total, raw_total, rel_diff * 100), call. = FALSE)
+    stop(sprintf(
+      "Reconciliation FAILED for %s: weekly total %.0f vs raw total %.0f (%.2f%% diff)",
+      label, weekly_total, raw_total, rel_diff * 100
+    ), call. = FALSE)
   }
   invisible(TRUE)
 }

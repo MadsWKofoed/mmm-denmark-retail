@@ -36,19 +36,19 @@ danish_holidays <- function(years) {
     easter <- easter_sunday(yr)
     holidays <- tibble::tibble(
       date = c(
-        as.Date(sprintf("%d-01-01", yr)),   # New Year's Day
-        easter - 3,                          # Maundy Thursday
-        easter - 2,                          # Good Friday
-        easter,                              # Easter Sunday
-        easter + 1,                          # Easter Monday
-        easter + 26,                         # Great Prayer Day (4th Friday after Easter)
-        easter + 39,                         # Ascension Day
-        easter + 49,                         # Whit Sunday
-        easter + 50,                         # Whit Monday
-        as.Date(sprintf("%d-12-24", yr)),   # Christmas Eve (half day, retail-relevant)
-        as.Date(sprintf("%d-12-25", yr)),   # Christmas Day
-        as.Date(sprintf("%d-12-26", yr)),   # 2nd Christmas Day
-        as.Date(sprintf("%d-12-31", yr))    # New Year's Eve
+        as.Date(sprintf("%d-01-01", yr)), # New Year's Day
+        easter - 3, # Maundy Thursday
+        easter - 2, # Good Friday
+        easter, # Easter Sunday
+        easter + 1, # Easter Monday
+        easter + 26, # Great Prayer Day (4th Friday after Easter)
+        easter + 39, # Ascension Day
+        easter + 49, # Whit Sunday
+        easter + 50, # Whit Monday
+        as.Date(sprintf("%d-12-24", yr)), # Christmas Eve (half day, retail-relevant)
+        as.Date(sprintf("%d-12-25", yr)), # Christmas Day
+        as.Date(sprintf("%d-12-26", yr)), # 2nd Christmas Day
+        as.Date(sprintf("%d-12-31", yr)) # New Year's Eve
       ),
       holiday_name = c(
         "Nytaarsdag", "Skaertorsdag", "Langfredag", "Paaskedag", "2. Paaskedag",

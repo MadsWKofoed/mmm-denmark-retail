@@ -43,8 +43,10 @@ wt_test <- wt[test_idx, ]
 channels <- ridge_model$channels
 final_params <- ridge_model$params
 
-log_msg("Out-of-time holdout: %d weeks, %s to %s (untouched by all tuning above)",
-    holdout_n, min(wt_test$week_start), max(wt_test$week_start))
+log_msg(
+  "Out-of-time holdout: %d weeks, %s to %s (untouched by all tuning above)",
+  holdout_n, min(wt_test$week_start), max(wt_test$week_start)
+)
 
 # Build media matrix on the FULL series then split, so adstock carryover
 # correctly propagates from the training period into the holdout.
@@ -57,7 +59,7 @@ accuracy_metrics <- function(actual, predicted, model_name) {
     rmse = sqrt(mean(resid^2)),
     mape_pct = mean(abs(resid / actual)) * 100,
     r2 = 1 - sum(resid^2) / sum((actual - mean(actual))^2),
-    bias_pct = mean(resid / actual) * 100  # positive = under-forecast on average
+    bias_pct = mean(resid / actual) * 100 # positive = under-forecast on average
   )
 }
 
@@ -96,7 +98,8 @@ m_ridge <- accuracy_metrics(wt_test$revenue_dkk, ridge_pred, "Ridge/elastic-net 
 # Bayesian MMM (04b)
 # -----------------------------------------------------------------------------
 log_msg("Evaluating Bayesian MMM on the holdout...")
-newdata_test <- as_tibble(media_split$test) |> bind_cols(as_tibble(control_mat_test)) |>
+newdata_test <- as_tibble(media_split$test) |>
+  bind_cols(as_tibble(control_mat_test)) |>
   mutate(t = wt_test$t, y_scaled = wt_test$revenue_dkk / bayes_model$mean_revenue)
 bayes_pred_draws <- posterior_predict(bayes_model$fit, newdata = newdata_test, allow_new_levels = TRUE)
 bayes_pred_scaled <- colMeans(bayes_pred_draws)
@@ -138,8 +141,10 @@ cv_fold_metrics <- map_dfr(seq_along(folds), function(i) {
   m
 })
 write_csv(cv_fold_metrics, here("results", "tables", "05_rolling_cv_metrics.csv"))
-log_msg("Rolling-origin CV (ridge MMM): mean MAPE=%.1f%%, mean RMSE=%.0f, mean R2=%.3f across %d folds",
-    mean(cv_fold_metrics$mape_pct), mean(cv_fold_metrics$rmse), mean(cv_fold_metrics$r2), nrow(cv_fold_metrics))
+log_msg(
+  "Rolling-origin CV (ridge MMM): mean MAPE=%.1f%%, mean RMSE=%.0f, mean R2=%.3f across %d folds",
+  mean(cv_fold_metrics$mape_pct), mean(cv_fold_metrics$rmse), mean(cv_fold_metrics$r2), nrow(cv_fold_metrics)
+)
 
 # -----------------------------------------------------------------------------
 # Residual diagnostics on holdout (ridge + Bayesian)
@@ -168,8 +173,10 @@ p_holdout <- resid_df |>
   geom_line(aes(y = bayes_pred, color = "Bayesian MMM"), linewidth = 0.7) +
   scale_color_manual(values = c(Actual = mmm_pal("ink_primary"), `Ridge MMM` = mmm_pal("warning"), `Bayesian MMM` = mmm_pal("primary")), name = NULL) +
   scale_y_continuous(labels = scales::label_number(scale = 1e-6, suffix = "M")) +
-  labs(title = "Out-of-time holdout: actual vs. predicted revenue", subtitle = "Shaded band = Bayesian MMM 90% predictive interval",
-       x = NULL, y = "Revenue (DKK)") +
+  labs(
+    title = "Out-of-time holdout: actual vs. predicted revenue", subtitle = "Shaded band = Bayesian MMM 90% predictive interval",
+    x = NULL, y = "Revenue (DKK)"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "05_holdout_actual_vs_predicted.png"), p_holdout, width = 10, height = 5, dpi = 130)
 

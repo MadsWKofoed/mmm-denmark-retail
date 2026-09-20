@@ -17,7 +17,9 @@ adstock_geometric <- function(x, decay) {
   stopifnot(is.numeric(x), length(decay) == 1, decay >= 0, decay < 1)
   n <- length(x)
   out <- numeric(n)
-  if (n == 0) return(out)
+  if (n == 0) {
+    return(out)
+  }
   out[1] <- x[1]
   if (n > 1) {
     for (t in 2:n) {

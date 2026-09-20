@@ -48,8 +48,10 @@ google_weekly <- google_clean |>
   filter(!is.na(channel)) |>
   mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1)) |>
   group_by(week_start, channel) |>
-  summarise(spend_dkk = sum(omkostning_dkk, na.rm = TRUE),
-            platform_reported_revenue_dkk = sum(konv_vaerdi_dkk, na.rm = TRUE), .groups = "drop")
+  summarise(
+    spend_dkk = sum(omkostning_dkk, na.rm = TRUE),
+    platform_reported_revenue_dkk = sum(konv_vaerdi_dkk, na.rm = TRUE), .groups = "drop"
+  )
 
 # -----------------------------------------------------------------------------
 # Meta Ads (social_prospecting, social_retargeting)
@@ -74,8 +76,10 @@ meta_weekly <- meta_clean |>
   filter(!is.na(channel)) |>
   mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1)) |>
   group_by(week_start, channel) |>
-  summarise(spend_dkk = sum(spend_dkk, na.rm = TRUE),
-            platform_reported_revenue_dkk = sum(conv_value_dkk, na.rm = TRUE), .groups = "drop")
+  summarise(
+    spend_dkk = sum(spend_dkk, na.rm = TRUE),
+    platform_reported_revenue_dkk = sum(conv_value_dkk, na.rm = TRUE), .groups = "drop"
+  )
 
 # -----------------------------------------------------------------------------
 # Programmatic (programmatic_display, online_video)
@@ -96,8 +100,10 @@ prog_weekly <- prog_clean |>
   filter(!is.na(channel)) |>
   mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1)) |>
   group_by(week_start, channel) |>
-  summarise(spend_dkk = sum(spend_dkk, na.rm = TRUE),
-            platform_reported_revenue_dkk = sum(revenue_dkk, na.rm = TRUE), .groups = "drop")
+  summarise(
+    spend_dkk = sum(spend_dkk, na.rm = TRUE),
+    platform_reported_revenue_dkk = sum(revenue_dkk, na.rm = TRUE), .groups = "drop"
+  )
 
 # -----------------------------------------------------------------------------
 # TV spots
@@ -162,8 +168,10 @@ media_long <- bind_rows(
   leaflet_weekly |> select(week_start, channel, spend_dkk)
 ) |>
   group_by(week_start, channel) |>
-  summarise(spend_dkk = sum(spend_dkk, na.rm = TRUE),
-            platform_reported_revenue_dkk = sum(platform_reported_revenue_dkk, na.rm = TRUE), .groups = "drop")
+  summarise(
+    spend_dkk = sum(spend_dkk, na.rm = TRUE),
+    platform_reported_revenue_dkk = sum(platform_reported_revenue_dkk, na.rm = TRUE), .groups = "drop"
+  )
 
 media_spend_wide <- media_long |>
   select(week_start, channel, spend_dkk) |>
@@ -171,8 +179,10 @@ media_spend_wide <- media_long |>
 
 platform_roas_wide <- media_long |>
   select(week_start, channel, platform_reported_revenue_dkk) |>
-  pivot_wider(names_from = channel, values_from = platform_reported_revenue_dkk, values_fill = 0,
-              names_prefix = "platform_revenue_")
+  pivot_wider(
+    names_from = channel, values_from = platform_reported_revenue_dkk, values_fill = 0,
+    names_prefix = "platform_revenue_"
+  )
 
 # -----------------------------------------------------------------------------
 # Client sales (revenue)
@@ -189,9 +199,11 @@ sales_weekly <- sales_raw |>
   filter(!is.na(date)) |>
   mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1)) |>
   group_by(week_start) |>
-  summarise(revenue_dkk = sum(store_dkk, na.rm = TRUE) + sum(web_dkk, na.rm = TRUE),
-            store_revenue_dkk = sum(store_dkk, na.rm = TRUE),
-            web_revenue_dkk = sum(web_dkk, na.rm = TRUE), .groups = "drop")
+  summarise(
+    revenue_dkk = sum(store_dkk, na.rm = TRUE) + sum(web_dkk, na.rm = TRUE),
+    store_revenue_dkk = sum(store_dkk, na.rm = TRUE),
+    web_revenue_dkk = sum(web_dkk, na.rm = TRUE), .groups = "drop"
+  )
 
 # -----------------------------------------------------------------------------
 # Promo calendar -> weekly promo depth (share of week under promotion, avg depth)
@@ -210,8 +222,10 @@ log_msg("Cleaning store_count_weekly.csv...")
 store_raw <- read_raw_csv(here("data", "raw", "store_count_weekly.csv"))
 store_weekly <- store_raw |>
   distinct() |>
-  mutate(week_start = lubridate::floor_date(parse_messy_dates(uge), unit = "week", week_start = 1),
-         n_stores = as.numeric(antal_butikker)) |>
+  mutate(
+    week_start = lubridate::floor_date(parse_messy_dates(uge), unit = "week", week_start = 1),
+    n_stores = as.numeric(antal_butikker)
+  ) |>
   filter(!is.na(week_start)) |>
   group_by(week_start) |>
   summarise(n_stores = max(n_stores), .groups = "drop")
@@ -226,9 +240,11 @@ cpi_monthly <- read_csv(here("data", "external", "cpi_monthly.csv"), show_col_ty
 danish_holidays_raw <- read_csv(here("data", "external", "danish_holidays.csv"), show_col_types = FALSE)
 
 calendar <- tibble(week_start = seq(as.Date(cfg$period$start_date), as.Date(cfg$period$end_date), by = "week")) |>
-  mutate(iso_year = lubridate::isoyear(week_start), iso_week = lubridate::isoweek(week_start),
-         year = lubridate::year(week_start), month = lubridate::month(week_start),
-         year_month = sprintf("%dM%02d", year, month))
+  mutate(
+    iso_year = lubridate::isoyear(week_start), iso_week = lubridate::isoweek(week_start),
+    year = lubridate::year(week_start), month = lubridate::month(week_start),
+    year_month = sprintf("%dM%02d", year, month)
+  )
 
 external_weekly <- calendar |>
   left_join(weather_weekly |> select(iso_year, iso_week, temperature_c, precipitation_mm), by = c("iso_year", "iso_week")) |>
@@ -242,15 +258,17 @@ external_weekly <- calendar |>
 # holiday dates -- Easter/Ascension/Whit Monday move every year; Great
 # Prayer Day was abolished as a public holiday from 2024).
 holiday_weeks <- danish_holidays_raw |>
-  mutate(week_start = lubridate::floor_date(date, unit = "week", week_start = 1),
-         holiday_group = case_when(
-           holiday_name %in% c("Skaertorsdag", "Langfredag", "Paaskedag", "2. Paaskedag") ~ "is_easter_week",
-           holiday_name == "Kristi Himmelfartsdag" ~ "is_ascension_week",
-           holiday_name == "2. Pinsedag" ~ "is_whitmonday_week",
-           holiday_name == "Store Bededag" ~ "is_great_prayer_week",
-           holiday_name %in% c("Juleaftensdag", "Juledag", "2. Juledag", "Nytaarsaften") ~ "is_christmas_week",
-           TRUE ~ NA_character_
-         )) |>
+  mutate(
+    week_start = lubridate::floor_date(date, unit = "week", week_start = 1),
+    holiday_group = case_when(
+      holiday_name %in% c("Skaertorsdag", "Langfredag", "Paaskedag", "2. Paaskedag") ~ "is_easter_week",
+      holiday_name == "Kristi Himmelfartsdag" ~ "is_ascension_week",
+      holiday_name == "2. Pinsedag" ~ "is_whitmonday_week",
+      holiday_name == "Store Bededag" ~ "is_great_prayer_week",
+      holiday_name %in% c("Juleaftensdag", "Juledag", "2. Juledag", "Nytaarsaften") ~ "is_christmas_week",
+      TRUE ~ NA_character_
+    )
+  ) |>
   filter(!is.na(holiday_group)) |>
   distinct(week_start, holiday_group) |>
   mutate(flag = 1L) |>
@@ -288,10 +306,12 @@ n_missing_revenue <- sum(is.na(weekly$revenue_dkk))
 if (n_missing_revenue > 0) {
   log_msg("  Interpolating %d week(s) with missing revenue (from dropped raw rows)", n_missing_revenue)
   weekly <- weekly |>
-    mutate(revenue_was_interpolated = is.na(revenue_dkk),
-           revenue_dkk = zoo::na.approx(revenue_dkk, na.rm = FALSE),
-           store_revenue_dkk = zoo::na.approx(store_revenue_dkk, na.rm = FALSE),
-           web_revenue_dkk = zoo::na.approx(web_revenue_dkk, na.rm = FALSE))
+    mutate(
+      revenue_was_interpolated = is.na(revenue_dkk),
+      revenue_dkk = zoo::na.approx(revenue_dkk, na.rm = FALSE),
+      store_revenue_dkk = zoo::na.approx(store_revenue_dkk, na.rm = FALSE),
+      web_revenue_dkk = zoo::na.approx(web_revenue_dkk, na.rm = FALSE)
+    )
 } else {
   weekly$revenue_was_interpolated <- FALSE
 }

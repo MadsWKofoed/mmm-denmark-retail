@@ -37,8 +37,9 @@ can identify that.
 Switching paid social prospecting off in a randomly assigned half of Denmark's 98 municipalities
 for 6 weeks produced a statistically significant lift estimate (DiD p=0.004 by randomisation
 inference; 90% bootstrap CI excludes zero) implying an ROAS of 2.42 (SE 0.91) — close to the true
-2.6. Feeding that as an informative prior for social_prospecting specifically and refitting: see
-`results/tables/07_calibration_comparison.csv` for whether/how much it tightened the estimate.
+2.6. Feeding that as an informative prior for social_prospecting specifically and refitting
+improved the estimate materially: error vs. true ROAS dropped from 0.27 to 0.12, and the 90%
+credible interval tightened from [0.24, 5.47] to [1.00, 3.98] (`results/tables/07_calibration_comparison.csv`).
 
 **6. Why was that channel already reasonably well-recovered even without the experiment?**
 Social prospecting's spend is "always-on with bursts," not tied to revenue's own seasonal

@@ -73,9 +73,11 @@ score_transform_draw <- function(draw, wt, channels, folds, alpha, n_lambda) {
       glmnet::glmnet(d_train$X, d_train$y, alpha = alpha, lower.limits = lower, nlambda = n_lambda, standardize = TRUE),
       error = function(e) NULL
     )
-    if (is.null(fit)) return(rep(NA_real_, n_lambda))
+    if (is.null(fit)) {
+      return(rep(NA_real_, n_lambda))
+    }
 
-    preds <- stats::predict(fit, newx = d_test$X)  # n_test x n_lambda(actual)
+    preds <- stats::predict(fit, newx = d_test$X) # n_test x n_lambda(actual)
     rmse_per_lambda <- sqrt(colMeans((preds - d_test$y)^2))
     # pad to n_lambda for consistent matrix binding across folds (glmnet can stop early)
     length(rmse_per_lambda) <- n_lambda

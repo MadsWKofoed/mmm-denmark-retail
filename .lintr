@@ -1,0 +1,7 @@
+linters: linters_with_defaults(
+    line_length_linter = line_length_linter(140),
+    object_name_linter = NULL,
+    object_usage_linter = NULL, # tidyverse NSE (dplyr/ggplot column names) produces many false positives
+    commented_code_linter = NULL # several genuine comments contain example code/formulas, not dead code
+  )
+exclusions: list("renv")

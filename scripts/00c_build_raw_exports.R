@@ -41,7 +41,9 @@ build_google_ads <- function() {
     tibble(
       date = daily_spend$date,
       campaign = messy_campaign_name(ifelse(ch == "search_brand", "Search", "Search"),
-                                      chans[ch], daily_spend$date, n = nrow(daily_spend)),
+        chans[ch], daily_spend$date,
+        n = nrow(daily_spend)
+      ),
       cost = daily_spend$value,
       klik = round(daily_spend$value / runif(nrow(daily_spend), 4, 9)),
       visninger = round(daily_spend$value / runif(nrow(daily_spend), 0.15, 0.4)),
@@ -55,7 +57,8 @@ build_google_ads <- function() {
   out <- inject_row_gremlins(out, dq)
   out <- out |> rename(dato = date_str, kampagne = campaign, omkostning = cost, konv_vaerdi = conv_value)
   write_danish_csv(out, here("data", "raw", "google_ads_daily.csv"),
-                    comma_cols = c("omkostning", "konv_vaerdi"), use_comma = FALSE)
+    comma_cols = c("omkostning", "konv_vaerdi"), use_comma = FALSE
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -81,7 +84,8 @@ build_meta_ads <- function() {
   out <- maybe_eur(out, c("Amount spent (DKK)", "Purchase conversion value"), dq, share_eur = 0.2)
   out <- inject_row_gremlins(out, dq)
   write_danish_csv(out, here("data", "raw", "meta_ads_daily.csv"),
-                    comma_cols = c("Amount spent (DKK)", "Purchase conversion value"))
+    comma_cols = c("Amount spent (DKK)", "Purchase conversion value")
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -106,7 +110,8 @@ build_programmatic <- function() {
   out <- maybe_eur(out, c("spend_dkk", "attributed_revenue"), dq, share_eur = 0.15)
   out <- inject_row_gremlins(out, dq)
   write_danish_csv(out, here("data", "raw", "programmatic_daily.csv"),
-                    comma_cols = c("spend_dkk", "attributed_revenue"), use_comma = FALSE)
+    comma_cols = c("spend_dkk", "attributed_revenue"), use_comma = FALSE
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -114,9 +119,11 @@ build_programmatic <- function() {
 #    "spot batches" per week with GRPs and cost
 # -----------------------------------------------------------------------------
 build_tv_spots <- function() {
-  cpp_dkk <- 4200  # cost per GRP point, roughly
+  cpp_dkk <- 4200 # cost per GRP point, roughly
   out <- pmap_dfr(list(ms$week_start, ms$tv_linear), function(ws, spend) {
-    if (spend < 1000) return(NULL)
+    if (spend < 1000) {
+      return(NULL)
+    }
     n_batches <- sample(2:5, 1)
     batch_spend <- spend * (function(w) w / sum(w))(runif(n_batches, 0.5, 1.5))
     tibble(
@@ -138,7 +145,9 @@ build_tv_spots <- function() {
 # -----------------------------------------------------------------------------
 build_ooh <- function() {
   out <- pmap_dfr(list(ms$week_start, ms$ooh), function(ws, spend) {
-    if (spend < 500) return(NULL)
+    if (spend < 500) {
+      return(NULL)
+    }
     n_bookings <- sample(1:3, 1)
     booking_spend <- spend * (function(w) w / sum(w))(runif(n_bookings, 0.5, 1.5))
     tibble(
@@ -162,14 +171,15 @@ build_ooh <- function() {
 build_leaflets <- function() {
   out <- tibble(
     uge = ms$week_start,
-    oplag = round(ms$leaflets / runif(nrow(ms), 0.35, 0.55)),  # print run size proxy
+    oplag = round(ms$leaflets / runif(nrow(ms), 0.35, 0.55)), # print run size proxy
     distributionsomkostning_dkk = ms$leaflets * runif(nrow(ms), 0.75, 0.9),
     trykomkostning_dkk = ms$leaflets * runif(nrow(ms), 0.1, 0.25)
   )
   out$uge <- messy_dates(out$uge)
   out <- inject_row_gremlins(out, dq)
   write_danish_csv(out, here("data", "raw", "leaflet_costs_weekly.csv"),
-                    comma_cols = c("distributionsomkostning_dkk", "trykomkostning_dkk"))
+    comma_cols = c("distributionsomkostning_dkk", "trykomkostning_dkk")
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -210,7 +220,8 @@ build_client_sales <- function() {
   out$dato <- messy_dates(out$dato)
   out <- inject_row_gremlins(out, dq)
   write_danish_csv(out, here("data", "raw", "client_sales_daily.csv"),
-                    comma_cols = c("butiksomsaetning_dkk", "webshop_omsaetning_dkk"))
+    comma_cols = c("butiksomsaetning_dkk", "webshop_omsaetning_dkk")
+  )
 }
 
 # -----------------------------------------------------------------------------
@@ -233,18 +244,29 @@ build_promo_calendar <- function() {
 
 log_msg <- function(...) cat(sprintf("[%s] ", format(Sys.time(), "%H:%M:%S")), sprintf(...), "\n")
 
-log_msg("Building google_ads_daily.csv..."); build_google_ads()
-log_msg("Building meta_ads_daily.csv..."); build_meta_ads()
-log_msg("Building programmatic_daily.csv..."); build_programmatic()
-log_msg("Building tv_spots.csv..."); build_tv_spots()
-log_msg("Building ooh_bookings.csv..."); build_ooh()
-log_msg("Building leaflet_costs_weekly.csv..."); build_leaflets()
-log_msg("Building store_count_weekly.csv..."); build_store_count()
-log_msg("Building client_sales_daily.csv..."); build_client_sales()
-log_msg("Building promo_calendar.xlsx..."); build_promo_calendar()
+log_msg("Building google_ads_daily.csv...")
+build_google_ads()
+log_msg("Building meta_ads_daily.csv...")
+build_meta_ads()
+log_msg("Building programmatic_daily.csv...")
+build_programmatic()
+log_msg("Building tv_spots.csv...")
+build_tv_spots()
+log_msg("Building ooh_bookings.csv...")
+build_ooh()
+log_msg("Building leaflet_costs_weekly.csv...")
+build_leaflets()
+log_msg("Building store_count_weekly.csv...")
+build_store_count()
+log_msg("Building client_sales_daily.csv...")
+build_client_sales()
+log_msg("Building promo_calendar.xlsx...")
+build_promo_calendar()
 
 file.copy(here("config", "taxonomy_map.csv"), here("data", "raw", "taxonomy_map.csv"), overwrite = TRUE)
 
 log_msg("Done. Raw exports written to data/raw/")
-walk(list.files(here("data", "raw")), ~ log_msg("  %s (%s KB)", .x,
-     round(file.size(here("data", "raw", .x)) / 1024, 1)))
+walk(list.files(here("data", "raw")), ~ log_msg(
+  "  %s (%s KB)", .x,
+  round(file.size(here("data", "raw", .x)) / 1024, 1)
+))

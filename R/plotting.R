@@ -11,8 +11,10 @@
 # Fixed-order categorical palette (do not reorder or recycle across charts --
 # order is the CVD-safety mechanism). Roles beyond "categorical" are named.
 mmm_colors <- list(
-  categorical = c("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4",
-                   "#008300", "#4a3aa7", "#e34948", "#898781"),  # 9th = muted grey "Other"
+  categorical = c(
+    "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4",
+    "#008300", "#4a3aa7", "#e34948", "#898781"
+  ), # 9th = muted grey "Other"
   primary = "#2a78d6",
   positive = "#1baf7a",
   negative = "#e34948",
@@ -35,9 +37,11 @@ mmm_pal <- function(role = "primary") {
 
 #' Fixed channel display order + colors, used everywhere a channel is a
 #' categorical dimension (spend charts, contribution charts, ROAS charts).
-mmm_channel_levels <- c("tv_linear", "online_video", "social_prospecting",
-                         "social_retargeting", "search_brand", "search_nonbrand",
-                         "programmatic_display", "ooh", "leaflets")
+mmm_channel_levels <- c(
+  "tv_linear", "online_video", "social_prospecting",
+  "social_retargeting", "search_brand", "search_nonbrand",
+  "programmatic_display", "ooh", "leaflets"
+)
 mmm_channel_labels <- c(
   tv_linear = "TV (linear)", online_video = "Online video",
   social_prospecting = "Social prospecting", social_retargeting = "Social retargeting",
@@ -46,12 +50,16 @@ mmm_channel_labels <- c(
 )
 
 mmm_channel_scale_color <- function() {
-  ggplot2::scale_color_manual(values = setNames(mmm_colors$categorical, mmm_channel_levels),
-                               labels = mmm_channel_labels, breaks = mmm_channel_levels)
+  ggplot2::scale_color_manual(
+    values = setNames(mmm_colors$categorical, mmm_channel_levels),
+    labels = mmm_channel_labels, breaks = mmm_channel_levels
+  )
 }
 mmm_channel_scale_fill <- function() {
-  ggplot2::scale_fill_manual(values = setNames(mmm_colors$categorical, mmm_channel_levels),
-                              labels = mmm_channel_labels, breaks = mmm_channel_levels)
+  ggplot2::scale_fill_manual(
+    values = setNames(mmm_colors$categorical, mmm_channel_levels),
+    labels = mmm_channel_labels, breaks = mmm_channel_levels
+  )
 }
 
 #' Consistent ggplot2 theme: recessive gridlines/axes, system sans, no chart

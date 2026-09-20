@@ -59,8 +59,10 @@ wt <- wt |> mutate(seasonal_naive_pred = lag(revenue_dkk, 52))
 sn_eval <- wt |> filter(!is.na(seasonal_naive_pred))
 sn_mape <- mean(abs((sn_eval$revenue_dkk - sn_eval$seasonal_naive_pred) / sn_eval$revenue_dkk)) * 100
 sn_rmse <- sqrt(mean((sn_eval$revenue_dkk - sn_eval$seasonal_naive_pred)^2))
-log_msg("  Seasonal naive (revenue_t = revenue_{t-52}): MAPE=%.1f%%, RMSE=%.0f DKK (n=%d weeks evaluable)",
-    sn_mape, sn_rmse, nrow(sn_eval))
+log_msg(
+  "  Seasonal naive (revenue_t = revenue_{t-52}): MAPE=%.1f%%, RMSE=%.0f DKK (n=%d weeks evaluable)",
+  sn_mape, sn_rmse, nrow(sn_eval)
+)
 
 # -----------------------------------------------------------------------------
 # 2. No-media model
@@ -83,16 +85,20 @@ log_msg("  Naive OLS R^2=%.3f", ols_r2)
 
 ols_coefs <- broom::tidy(ols_fit) |>
   filter(term %in% spend_cols) |>
-  mutate(channel = str_remove(term, "spend_"),
-         wrong_signed = estimate < 0,
-         significant_at_5pct = p.value < 0.05)
+  mutate(
+    channel = str_remove(term, "spend_"),
+    wrong_signed = estimate < 0,
+    significant_at_5pct = p.value < 0.05
+  )
 write_csv(ols_coefs, here("results", "tables", "03_naive_ols_coefficients.csv"))
 
 log_msg("Naive OLS media coefficients (DKK revenue per DKK spend, i.e. should be a plausible ROAS if unbiased):")
 print(ols_coefs |> select(channel, estimate, std.error, p.value, wrong_signed))
 n_wrong_signed <- sum(ols_coefs$wrong_signed)
-log_msg("  %d of %d channels have a NEGATIVE (wrong-signed) coefficient despite genuinely positive true effects -- this is the collinearity from Phase 2 breaking OLS.",
-    n_wrong_signed, nrow(ols_coefs))
+log_msg(
+  "  %d of %d channels have a NEGATIVE (wrong-signed) coefficient despite genuinely positive true effects -- this is the collinearity from Phase 2 breaking OLS.",
+  n_wrong_signed, nrow(ols_coefs)
+)
 
 # -----------------------------------------------------------------------------
 # Diagnostics on the naive OLS model
@@ -107,8 +113,8 @@ vif_table <- tibble(term = names(vif_vals), vif = vif_vals) |>
   arrange(desc(vif))
 
 dw_test <- lmtest::dwtest(ols_fit)
-bg_test <- lmtest::bgtest(ols_fit, order = 4)  # residual autocorrelation up to lag 4
-bp_test <- lmtest::bptest(ols_fit)             # heteroskedasticity
+bg_test <- lmtest::bgtest(ols_fit, order = 4) # residual autocorrelation up to lag 4
+bp_test <- lmtest::bptest(ols_fit) # heteroskedasticity
 
 diagnostics <- tibble(
   test = c("Durbin-Watson (autocorrelation)", "Breusch-Godfrey (autocorrelation, order 4)", "Breusch-Pagan (heteroskedasticity)"),
@@ -158,11 +164,15 @@ p_coefs <- ggplot(ols_coefs, aes(reorder(channel, estimate), estimate, fill = wr
   geom_col() +
   geom_hline(yintercept = 0, color = mmm_pal("ink_secondary"), linewidth = 0.4) +
   coord_flip() +
-  scale_fill_manual(values = c(`FALSE` = mmm_pal("primary"), `TRUE` = mmm_pal("negative")),
-                     labels = c(`FALSE` = "Positive (plausible sign)", `TRUE` = "Negative (wrong sign)"), name = NULL) +
-  labs(title = "Naive OLS on raw spend: media coefficients",
-       subtitle = sprintf("%d of %d channels come out wrong-signed due to collinearity -- this is why adstock/saturation + regularisation matter", n_wrong_signed, nrow(ols_coefs)),
-       x = NULL, y = "OLS coefficient (DKK revenue per DKK spend)") +
+  scale_fill_manual(
+    values = c(`FALSE` = mmm_pal("primary"), `TRUE` = mmm_pal("negative")),
+    labels = c(`FALSE` = "Positive (plausible sign)", `TRUE` = "Negative (wrong sign)"), name = NULL
+  ) +
+  labs(
+    title = "Naive OLS on raw spend: media coefficients",
+    subtitle = sprintf("%d of %d channels come out wrong-signed due to collinearity -- this is why adstock/saturation + regularisation matter", n_wrong_signed, nrow(ols_coefs)),
+    x = NULL, y = "OLS coefficient (DKK revenue per DKK spend)"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "03_naive_ols_coefficients.png"), p_coefs, width = 9, height = 5.5, dpi = 130)
 
@@ -176,8 +186,10 @@ baseline_summary <- tibble(
   notes = c(
     "Simple, robust, but blind to media entirely -- can't answer any 'what if we changed spend' question.",
     "Shows how much controls alone explain; the gap to actual revenue is what media + noise must cover.",
-    sprintf("%d of %d channels wrong-signed; residuals autocorrelated (DW p=%.3f) and heteroskedastic (BP p=%.3f) -- coefficients are not trustworthy for budget decisions.",
-            n_wrong_signed, nrow(ols_coefs), dw_test$p.value, bp_test$p.value)
+    sprintf(
+      "%d of %d channels wrong-signed; residuals autocorrelated (DW p=%.3f) and heteroskedastic (BP p=%.3f) -- coefficients are not trustworthy for budget decisions.",
+      n_wrong_signed, nrow(ols_coefs), dw_test$p.value, bp_test$p.value
+    )
   )
 )
 write_csv(baseline_summary, here("results", "tables", "03_baseline_comparison.csv"))

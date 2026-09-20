@@ -74,9 +74,10 @@ simulate_non_media_drivers <- function(calendar, cfg, holidays) {
   for (nm_key in names(hol_map)) {
     hdates <- holidays$date[holidays$holiday_name == hol_map[[nm_key]]]
     if (length(hdates) == 0) next
-    hyears <- lubridate::isoyear(hdates); hweeks <- lubridate::isoweek(hdates)
+    hyears <- lubridate::isoyear(hdates)
+    hweeks <- lubridate::isoweek(hdates)
     idx <- which(calendar$iso_year %in% hyears & calendar$iso_week %in% hweeks &
-                   paste(calendar$iso_year, calendar$iso_week) %in% paste(hyears, hweeks))
+      paste(calendar$iso_year, calendar$iso_week) %in% paste(hyears, hweeks))
     holiday_week_mult[idx] <- holiday_week_mult[idx] * rv$holiday_effects[[nm_key]]
   }
 
@@ -166,8 +167,8 @@ simulate_channel_spend <- function(channel_name, ch_cfg, calendar, drivers, sear
     # degenerate) form of endogeneity.
     "follows_seasonal_demand" = mean_spend * (0.6 + 0.8 * drivers$garden_peak + 0.6 * (calendar$iso_week %in% c(47, 48, 50, 51))) *
       (drivers$seasonal_multiplier / mean(drivers$seasonal_multiplier))^0.18 * exp(rnorm(n, 0, 0.30)),
-    "follows_traffic" = mean_spend * rep(1, n),  # filled in later using site-traffic proxy
-    "follows_brand_demand" = mean_spend * rep(1, n),  # filled in later using lagged TV
+    "follows_traffic" = mean_spend * rep(1, n), # filled in later using site-traffic proxy
+    "follows_brand_demand" = mean_spend * rep(1, n), # filled in later using lagged TV
     rep(mean_spend, n)
   )
 
@@ -200,7 +201,7 @@ simulate_ground_truth <- function(cfg, weather_weekly, consumer_confidence, cpi_
   brand_demand_signal <- dplyr::lag(tv_adstock, cfg$media_channels$search_brand$endogenous_lag_weeks, default = mean(tv_adstock))
   brand_demand_signal <- brand_demand_signal / mean(brand_demand_signal)
   spend[["search_brand"]] <- pmax(0, cfg$media_channels$search_brand$mean_weekly_spend_dkk *
-                                     (0.35 + 0.9 * brand_demand_signal) * exp(rnorm(n, 0, 0.10)))
+    (0.35 + 0.9 * brand_demand_signal) * exp(rnorm(n, 0, 0.10)))
 
   # Retargeting spend follows a site-traffic proxy (driven by overall demand
   # level), dampened (^0.35) and with more idiosyncratic noise for the same
@@ -209,7 +210,7 @@ simulate_ground_truth <- function(cfg, weather_weekly, consumer_confidence, cpi_
   demand_proxy <- drivers$seasonal_multiplier * drivers$trend_index
   demand_proxy <- demand_proxy / mean(demand_proxy)
   spend[["social_retargeting"]] <- pmax(0, cfg$media_channels$social_retargeting$mean_weekly_spend_dkk *
-                                           (0.55 + 0.45 * demand_proxy^0.5) * exp(rnorm(n, 0, 0.18)))
+    (0.55 + 0.45 * demand_proxy^0.5) * exp(rnorm(n, 0, 0.18)))
 
   media_spend <- tibble::as_tibble(spend)
   media_spend$week_start <- calendar$week_start
@@ -231,7 +232,9 @@ simulate_ground_truth <- function(cfg, weather_weekly, consumer_confidence, cpi_
   # when sd = 0, e.g. a constant driver in a short test fixture).
   z <- function(x) {
     s <- stats::sd(x, na.rm = TRUE)
-    if (is.na(s) || s == 0) return(rep(0, length(x)))
+    if (is.na(s) || s == 0) {
+      return(rep(0, length(x)))
+    }
     as.numeric(scale(x))
   }
   nm <- cfg$non_media_drivers

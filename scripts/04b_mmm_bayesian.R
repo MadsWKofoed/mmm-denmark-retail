@@ -40,7 +40,13 @@ dir.create(here("results", "figures"), recursive = TRUE, showWarnings = FALSE)
 # Pick a Stan backend: cmdstanr if CmdStan is actually installed, else rstan.
 backend <- "rstan"
 if (requireNamespace("cmdstanr", quietly = TRUE)) {
-  cmdstan_ok <- tryCatch({ cmdstanr::cmdstan_path(); TRUE }, error = function(e) FALSE)
+  cmdstan_ok <- tryCatch(
+    {
+      cmdstanr::cmdstan_path()
+      TRUE
+    },
+    error = function(e) FALSE
+  )
   if (cmdstan_ok) backend <- "cmdstanr"
 }
 log_msg("Using Stan backend: %s", backend)
@@ -63,8 +69,10 @@ model_df <- as_tibble(media_mat) |>
 
 fp <- build_bayes_formula_priors(channels, mmm_control_cols(), bcfg)
 
-log_msg("Fitting brms model: %d chains, %d warmup, %d sampling iterations (media_effect_prior_sd=%.2f)...",
-    mcmc_cfg$chains, mcmc_cfg$iter_warmup, mcmc_cfg$iter_sampling, bcfg$media_effect_prior_sd)
+log_msg(
+  "Fitting brms model: %d chains, %d warmup, %d sampling iterations (media_effect_prior_sd=%.2f)...",
+  mcmc_cfg$chains, mcmc_cfg$iter_warmup, mcmc_cfg$iter_sampling, bcfg$media_effect_prior_sd
+)
 t0 <- Sys.time()
 fit <- brm(
   formula = fp$formula, data = model_df, prior = fp$prior, family = gaussian(),
@@ -77,7 +85,7 @@ fit <- brm(
   # is safe and faster.
   backend = backend, seed = mcfg$seed, cores = 1,
   control = list(adapt_delta = bcfg$adapt_delta, max_treedepth = bcfg$max_treedepth),
-  refresh = 200  # periodic progress output -- silent long-running jobs (refresh=0) appear to get killed in this sandbox
+  refresh = 200 # periodic progress output -- silent long-running jobs (refresh=0) appear to get killed in this sandbox
 )
 log_msg("MCMC done in %.1f minutes.", as.numeric(Sys.time() - t0, units = "mins"))
 
@@ -126,16 +134,20 @@ media_share_draws <- {
   total_contrib_draws <- rowSums(contrib_per_draw) * mean_revenue
   total_contrib_draws / sum(wt_train$revenue_dkk)
 }
-log_msg("Bayesian model media share of revenue: mean=%.1f%%, 90%% CI [%.1f%%, %.1f%%] (vs 04a's point estimate 63.5%%, true 16.6%%)",
-    mean(media_share_draws) * 100, quantile(media_share_draws, 0.05) * 100, quantile(media_share_draws, 0.95) * 100)
+log_msg(
+  "Bayesian model media share of revenue: mean=%.1f%%, 90%% CI [%.1f%%, %.1f%%] (vs 04a's point estimate 63.5%%, true 16.6%%)",
+  mean(media_share_draws) * 100, quantile(media_share_draws, 0.05) * 100, quantile(media_share_draws, 0.95) * 100
+)
 
 p_roas_bayes <- ggplot(channel_summary, aes(reorder(channel, roas_mean), roas_mean)) +
   geom_col(fill = mmm_pal("primary")) +
   geom_errorbar(aes(ymin = roas_lower, ymax = roas_upper), width = 0.25, color = mmm_pal("ink_secondary")) +
   geom_hline(yintercept = 1, linetype = "dashed", color = mmm_pal("ink_secondary")) +
   coord_flip() +
-  labs(title = "Bayesian MMM: posterior ROAS by channel", subtitle = "90% credible intervals; dashed line = breakeven",
-       x = NULL, y = "Posterior ROAS") +
+  labs(
+    title = "Bayesian MMM: posterior ROAS by channel", subtitle = "90% credible intervals; dashed line = breakeven",
+    x = NULL, y = "Posterior ROAS"
+  ) +
   mmm_theme()
 ggsave(here("results", "figures", "04b_roas_posterior.png"), p_roas_bayes, width = 8, height = 5, dpi = 130)
 

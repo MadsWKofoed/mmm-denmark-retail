@@ -44,15 +44,17 @@ cat("any NA in weekly_truth:", any(is.na(wt)), "\n")
 ms <- truth$media_spend
 cat("\nmedia spend summary (weekly mean DKK):\n")
 print(ms |> select(-week_start) |> summarise(across(everything(), mean)) |> pivot_longer(everything()) |>
-        arrange(desc(value)))
+  arrange(desc(value)))
 
 cat("\nimplied short-run ROAS by channel (true contribution / true spend):\n")
 channel_names <- names(cfg$media_channels)
 roas_check <- map_dfr(channel_names, function(ch) {
-  tibble(channel = ch,
-         true_spend = sum(ms[[ch]]),
-         true_contrib = sum(wt[[paste0("true_contrib_", ch)]]),
-         implied_roas = true_contrib / true_spend)
+  tibble(
+    channel = ch,
+    true_spend = sum(ms[[ch]]),
+    true_contrib = sum(wt[[paste0("true_contrib_", ch)]]),
+    implied_roas = true_contrib / true_spend
+  )
 })
 print(roas_check)
 
@@ -61,7 +63,8 @@ cat("Total revenue:", round(sum(wt$revenue_dkk)), "DKK\n")
 
 ggsave(
   here("results", "figures", "_truth_check_revenue.png"),
-  ggplot(wt, aes(week_start, revenue_dkk)) + geom_line() +
+  ggplot(wt, aes(week_start, revenue_dkk)) +
+    geom_line() +
     labs(title = "TRUE simulated weekly revenue (sanity check)", x = NULL, y = "Revenue (DKK)") +
     theme_minimal(),
   width = 10, height = 4, dpi = 120

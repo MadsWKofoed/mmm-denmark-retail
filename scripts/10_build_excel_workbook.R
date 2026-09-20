@@ -25,8 +25,10 @@ roas_summary <- read_or_empty(file.path(t, "04a_channel_roas.csv")) |>
   select(channel, ridge_roas = roas, ridge_spend = total_spend_dkk, ridge_contribution = total_contribution_dkk)
 
 bayes_summary <- read_or_empty(file.path(t, "04b_channel_roas_posterior.csv")) |>
-  select(channel, bayes_roas_mean = roas_mean, bayes_roas_lower = roas_lower, bayes_roas_upper = roas_upper,
-         bayes_contribution_mean = contribution_mean)
+  select(channel,
+    bayes_roas_mean = roas_mean, bayes_roas_lower = roas_lower, bayes_roas_upper = roas_upper,
+    bayes_contribution_mean = contribution_mean
+  )
 
 platform_summary <- read_or_empty(file.path(t, "02_platform_reported_roas.csv")) |>
   select(channel, platform_reported_roas)

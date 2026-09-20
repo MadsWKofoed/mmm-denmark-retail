@@ -3,9 +3,12 @@ cfg_test <- yaml::read_yaml(here::here("config", "ground_truth.yml"))
 # Small, fast synthetic external data for simulator tests (avoids network calls)
 make_fake_external <- function(cfg) {
   weeks <- seq(as.Date(cfg$period$start_date), as.Date(cfg$period$end_date), by = "week")
-  iso_year <- lubridate::isoyear(weeks); iso_week <- lubridate::isoweek(weeks)
-  weather <- tibble::tibble(iso_year = iso_year, iso_week = iso_week,
-                             temperature_c = 10 + 5 * sin(seq_along(weeks)), precipitation_mm = 20)
+  iso_year <- lubridate::isoyear(weeks)
+  iso_week <- lubridate::isoweek(weeks)
+  weather <- tibble::tibble(
+    iso_year = iso_year, iso_week = iso_week,
+    temperature_c = 10 + 5 * sin(seq_along(weeks)), precipitation_mm = 20
+  )
   months <- unique(sprintf("%dM%02d", lubridate::year(weeks), lubridate::month(weeks)))
   confidence <- tibble::tibble(year_month = months, consumer_confidence = 0)
   cpi <- tibble::tibble(year_month = months, cpi_index = 100)
