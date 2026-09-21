@@ -1,8 +1,11 @@
 # Marketing Mix Modelling — Danish home & garden retailer (portfolio project)
 
-A complete, from-scratch Marketing Mix Modelling (MMM) project in R: messy raw data ingestion,
-cleaning, exploratory analysis, naive baselines with full diagnostics, a regularised (elastic net)
-MMM, a Bayesian MMM, a simulated geo experiment used to calibrate it, an ML benchmark, budget
+Built together with Claude Code (Anthropic's AI assistant) as a quick test of my skills in this
+setting.
+
+A complete Marketing Mix Modelling (MMM) project in R: messy raw data ingestion, cleaning,
+exploratory analysis, naive baselines with full diagnostics, a regularised (elastic net) MMM, a
+Bayesian MMM, a simulated geo experiment used to calibrate it, an ML benchmark, budget
 optimisation, scenario simulation, an agile monthly refresh backtest, and client-ready deliverables
 (deck, dashboard, Excel workbook, plain-language docs).
 
