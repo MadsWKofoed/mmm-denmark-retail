@@ -1,4 +1,4 @@
-.PHONY: setup all quick test clean
+.PHONY: setup all quick test app clean
 
 RSCRIPT := Rscript
 
